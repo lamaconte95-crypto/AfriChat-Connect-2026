@@ -91,6 +91,28 @@ export interface Story {
   expiresAt?: number;
 }
 
+export interface GameChallengeData {
+  gameId: string;
+  gameType: 'tictactoe' | 'connect4';
+  hostId?: string;
+  hostName?: string;
+  hostAvatar?: string;
+  hostFlag?: string;
+  guestId?: string;
+  guestName?: string;
+  guestAvatar?: string;
+  guestFlag?: string;
+  challengerId?: string;
+  challengerName?: string;
+  challengerAvatar?: string;
+  opponentId?: string;
+  opponentName?: string;
+  status: 'pending' | 'accepted' | 'declined' | 'completed';
+  stakeFcfa?: number;
+  winnerName?: string;
+  createdAt: number | string;
+}
+
 export interface Message {
   id: string;
   senderId: string;
@@ -104,6 +126,47 @@ export interface Message {
   timestamp: string;
   status: 'sent' | 'delivered' | 'read';
   isVipMessage?: boolean;
+  gameChallenge?: GameChallengeData;
+}
+
+export type TicTacToeCell = 'X' | 'O' | null;
+
+export interface GamePlayerInfo {
+  id: string;
+  name: string;
+  username?: string;
+  avatar?: string;
+  flag?: string;
+  role: 'X' | 'O';
+  isOnline?: boolean;
+}
+
+export interface TicTacToeGameState {
+  id: string;
+  roomCode: string;
+  host: GamePlayerInfo;
+  guest?: GamePlayerInfo;
+  board: TicTacToeCell[];
+  currentTurn: 'X' | 'O';
+  status: 'waiting' | 'in_progress' | 'won' | 'draw' | 'abandoned';
+  winner?: 'X' | 'O' | 'draw' | null;
+  winningLine?: [number, number, number] | null;
+  scores: {
+    playerX: number;
+    playerO: number;
+    draws: number;
+  };
+  stakeFcfa?: number;
+  rematchRequestedBy?: string | null;
+  isAiOpponent?: boolean;
+  aiDifficulty?: 'easy' | 'medium' | 'hard';
+  lastMove?: {
+    index: number;
+    player: 'X' | 'O';
+    timestamp: number;
+  };
+  createdAt: number;
+  updatedAt: number;
 }
 
 export type GroupRole = 'founder' | 'admin' | 'moderator' | 'member';
@@ -188,6 +251,7 @@ export interface ChatConversation {
   hostName?: string;
   hostFlag?: string;
   category?: string;
+  isOnline?: boolean;
   messages: Message[];
 }
 

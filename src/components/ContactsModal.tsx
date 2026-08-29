@@ -21,7 +21,8 @@ import {
   Globe,
   ArrowLeft,
   RefreshCw,
-  Database
+  Database,
+  Swords
 } from 'lucide-react';
 import { Contact, User } from '../types';
 import { COUNTRIES } from '../data/mockData';
@@ -39,6 +40,7 @@ interface ContactsModalProps {
   onOpenChatWithContact: (contact: Contact) => void;
   onStartCallWithContact: (contact: Contact, type: 'audio' | 'video') => void;
   onSendTipToContact: (contact: Contact) => void;
+  onOpenGameChallenge?: (contact: Contact) => void;
   onRefreshUsers?: () => Promise<void>;
   isRefreshingUsers?: boolean;
 }
@@ -55,6 +57,7 @@ export const ContactsModal: React.FC<ContactsModalProps> = ({
   onOpenChatWithContact,
   onStartCallWithContact,
   onSendTipToContact,
+  onOpenGameChallenge,
   onRefreshUsers,
   isRefreshingUsers = false,
 }) => {
@@ -518,6 +521,21 @@ export const ContactsModal: React.FC<ContactsModalProps> = ({
                             </button>
                           ) : (
                             <>
+                              {/* Game Challenge */}
+                              {onOpenGameChallenge && (
+                                <button
+                                  id={`game-challenge-contact-${contact.id}`}
+                                  onClick={() => {
+                                    onOpenGameChallenge(contact);
+                                    onClose();
+                                  }}
+                                  className="p-2 rounded-xl bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-300 hover:from-amber-500 hover:to-orange-500 hover:text-stone-950 border border-amber-500/30 transition-all cursor-pointer shadow-sm hover:scale-105"
+                                  title="Défier au Morpion (Tic-Tac-Toe)"
+                                >
+                                  <Swords className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+
                               {/* Direct Chat */}
                               <button
                                 id={`chat-with-contact-${contact.id}`}

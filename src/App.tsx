@@ -90,7 +90,8 @@ import { FriendsManagerModal } from './components/FriendsManagerModal';
 import { AiAssistantModal } from './components/AiAssistantModal';
 import { ApiConfigModal } from './components/ApiConfigModal';
 import { AdminAiReleaseModal } from './components/AdminAiReleaseModal';
-import { StripeVipPlan } from './types';
+import { TicTacToeGameModal } from './components/TicTacToeGameModal';
+import { StripeVipPlan, GameChallengeData } from './types';
 import { 
   auth, 
   getUserProfile, 
@@ -102,7 +103,9 @@ import {
   subscribeToConversationMessages,
   syncInitialConversationsToFirestore,
   testFirestoreConnection,
-  subscribeToUserProfile
+  subscribeToUserProfile,
+  getAllRegisteredUsersFromFirestore,
+  subscribeToAllRegisteredUsers
 } from './lib/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { 
@@ -187,6 +190,12 @@ export default function App() {
     markdown: string;
   } | null>(null);
 
+  // Real-time Tic-Tac-Toe Game State
+  const [isGameModalOpen, setIsGameModalOpen] = useState<boolean>(false);
+  const [gameOpponent, setGameOpponent] = useState<Contact | User | null>(null);
+  const [activeGameId, setActiveGameId] = useState<string | undefined>(undefined);
+  const [gameStake, setGameStake] = useState<number>(0);
+
   const handleOpenFriends = (tab: 'online' | 'add' | 'requests' | 'all' = 'online') => {
     setFriendsInitialTab(tab);
     setIsFriendsModalOpen(true);
@@ -205,9 +214,9 @@ export default function App() {
     };
   }, []);
 
-  // Firebase Auth State Observer
+  // Firebase Auth State Observer and real-time current user profile sync
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
+    const unsubscribeAuth = onAuthStateChanged(auth, async (fbUser) => {
       if (fbUser) {
         try {
           const profile = await getUserProfile(fbUser.uid);
@@ -237,8 +246,26 @@ export default function App() {
       }
     });
 
-    return () => unsubscribe();
+    return () => unsubscribeAuth();
   }, []);
+
+  // Real-time listener for current user profile changes from Firestore across devices (phone & PC)
+  useEffect(() => {
+    if (!currentUser.id) return;
+    const unsubscribeProfile = subscribeToUserProfile(currentUser.id, (updatedProfile) => {
+      if (updatedProfile) {
+        setCurrentUser((prev) => {
+          const merged = { ...prev, ...updatedProfile };
+          safeSetItem('africhat_user_profile', JSON.stringify(merged));
+          return merged;
+        });
+      }
+    });
+
+    return () => {
+      unsubscribeProfile();
+    };
+  }, [currentUser.id]);
 
   // Synchronize current user profile and avatar from Supabase across all devices (phones & computers)
   useEffect(() => {
@@ -307,7 +334,16 @@ export default function App() {
   const handleUpdateUserProfile = async (updatedUser: User) => {
     setCurrentUser(updatedUser);
     safeSetItem('africhat_user_profile', JSON.stringify(updatedUser));
+    
+    // Save to Firestore
     await updateUserProfileDoc(updatedUser.id, updatedUser);
+
+    // Save to Supabase (so all Supabase Realtime subscribers get the update instantly)
+    try {
+      await supabaseUpdateProfile(updatedUser.id, updatedUser);
+    } catch (e) {
+      console.warn('Supabase profile sync warning:', e);
+    }
 
     setPosts((prev) =>
       prev.map((p) => {
@@ -342,7 +378,7 @@ export default function App() {
       };
 
       await handleUpdateUserProfile(updatedUser);
-      triggerSecurityToast('✅ Photo de profil sauvegardée définitivement dans Supabase !', 'success');
+      triggerSecurityToast('✅ Photo de profil sauvegardée définitivement dans Supabase & Firestore !', 'success');
     } catch (err) {
       console.warn('Avatar upload warning:', err);
       const updatedUser: User = {
@@ -557,68 +593,95 @@ export default function App() {
     }, 4000);
   };
 
-  // Synchronization of Supabase Community Users & Realtime Profile updates (RLS Aware)
+  // Synchronization of Community Users & Realtime Profile updates (Supabase + Firestore)
   const [isRefreshingUsers, setIsRefreshingUsers] = useState<boolean>(false);
   const [supabaseUsersCount, setSupabaseUsersCount] = useState<number>(0);
 
   const fetchSupabaseUsers = async (showToast: boolean = false) => {
     try {
       setIsRefreshingUsers(true);
-      const res = await supabaseFetchAllProfiles();
-      const profiles = res.data || [];
-      setSupabaseUsersCount(profiles.length);
+      const [supaRes, firestoreUsers] = await Promise.allSettled([
+        supabaseFetchAllProfiles(),
+        getAllRegisteredUsersFromFirestore(),
+      ]);
 
-      if (profiles.length === 0) {
-        // If Supabase table is empty, clear contacts to ensure strictly no mock data
-        setContacts((prevContacts) => {
-          // Keep only any locally created contacts if needed or clear
+      const supaProfiles = supaRes.status === 'fulfilled' ? supaRes.value.data || [] : [];
+      const fbUsers = firestoreUsers.status === 'fulfilled' ? firestoreUsers.value || [] : [];
+
+      const contactMap = new Map<string, Contact>();
+
+      // 1. Merge Supabase profiles
+      supaProfiles.forEach((supaContact) => {
+        if (supaContact.id !== currentUser.id && supaContact.username.toLowerCase() !== currentUser.username.toLowerCase()) {
+          contactMap.set(supaContact.id || supaContact.username.toLowerCase(), supaContact);
+        }
+      });
+
+      // 2. Merge Firestore users
+      fbUsers.forEach((fbUser) => {
+        if (fbUser.id !== currentUser.id && fbUser.username.toLowerCase() !== currentUser.username.toLowerCase()) {
+          const key = fbUser.id || fbUser.username.toLowerCase();
+          const existing = contactMap.get(key);
+          const fbContact: Contact = {
+            id: fbUser.id,
+            userId: fbUser.id,
+            name: fbUser.name,
+            username: fbUser.username,
+            avatar: fbUser.avatar,
+            country: fbUser.country,
+            flag: fbUser.flag,
+            phoneNumber: fbUser.phoneNumber || '',
+            bio: fbUser.bio || 'Membre vérifié sur AfriChat 🌍',
+            isOnline: true,
+            lastSeen: 'En ligne',
+            isVIP: fbUser.isVIP,
+            isVerified: fbUser.isVerified,
+            isFriend: existing ? existing.isFriend : false,
+            isBlocked: existing ? existing.isBlocked : false,
+            reportsCount: 0,
+            mutualFriendsCount: existing ? existing.mutualFriendsCount : 3,
+            category: fbUser.isVIP ? 'creator' : 'friend',
+          };
+          contactMap.set(key, { ...(existing || {}), ...fbContact });
+        }
+      });
+
+      const mergedList = Array.from(contactMap.values());
+      setSupabaseUsersCount(mergedList.length);
+
+      setContacts((prevContacts) => {
+        if (mergedList.length === 0) {
           return prevContacts.filter((c) => !c.id.startsWith('mock_'));
-        });
-        if (showToast) {
-          triggerSecurityToast('Aucun utilisateur trouvé dans la base de données Supabase.', 'info');
         }
-      } else {
-        setContacts((prevContacts) => {
-          const contactMap = new Map<string, Contact>();
-          // Incoming supabase profiles (preserves friend/block status if already in local state)
-          profiles.forEach((supaContact) => {
-            const key = supaContact.id || supaContact.username.toLowerCase();
-            const existing = prevContacts.find((c) => (c.id && c.id === supaContact.id) || c.username.toLowerCase() === supaContact.username.toLowerCase());
-            if (existing) {
-              contactMap.set(key, {
-                ...supaContact,
-                isFriend: existing.isFriend,
-                isBlocked: existing.isBlocked,
-                category: existing.category || supaContact.category,
-              });
-            } else {
-              // Don't add current user to their own contact list
-              if (supaContact.id !== currentUser.id && supaContact.username.toLowerCase() !== currentUser.username.toLowerCase()) {
-                contactMap.set(key, supaContact);
-              }
-            }
-          });
-          return Array.from(contactMap.values());
+        return mergedList.map((m) => {
+          const prev = prevContacts.find((c) => c.id === m.id || c.username.toLowerCase() === m.username.toLowerCase());
+          if (prev) {
+            return {
+              ...m,
+              isFriend: prev.isFriend,
+              isBlocked: prev.isBlocked,
+            };
+          }
+          return m;
         });
+      });
 
-        if (showToast) {
-          triggerSecurityToast(`👥 ${profiles.length} membres et nouveaux inscrits synchronisés depuis Supabase !`, 'success');
-        }
+      if (showToast) {
+        triggerSecurityToast(`👥 ${mergedList.length} membres et nouveaux inscrits synchronisés en temps réel !`, 'success');
       }
     } catch (err) {
-      console.warn('Error fetching Supabase users:', err);
+      console.warn('Error fetching users:', err);
     } finally {
       setIsRefreshingUsers(false);
     }
   };
 
-  // Initial fetch and Realtime subscription to new user registrations
+  // Initial fetch and Realtime subscription to new user registrations from both Supabase & Firestore
   useEffect(() => {
     fetchSupabaseUsers();
 
-    // Setup Supabase Realtime channel for instant profile broadcasts
+    // 1. Setup Supabase Realtime channel for instant profile broadcasts
     const unsubscribeSupabase = supabaseSubscribeProfiles((newContact, eventType) => {
-      console.log(`[Supabase Realtime] Profile event: ${eventType}`, newContact);
       if (newContact.id === currentUser.id) return;
 
       if (eventType === 'INSERT') {
@@ -637,7 +700,45 @@ export default function App() {
       }
     });
 
-    // Auto-refresh polling every 20 seconds to guarantee fresh RLS updates
+    // 2. Setup Firestore Realtime listener for registered users
+    const unsubscribeFirestoreUsers = subscribeToAllRegisteredUsers((cloudUsers) => {
+      if (cloudUsers && cloudUsers.length > 0) {
+        setContacts((prevContacts) => {
+          const map = new Map<string, Contact>();
+          prevContacts.forEach((c) => map.set(c.id, c));
+
+          cloudUsers.forEach((fbUser) => {
+            if (fbUser.id !== currentUser.id && fbUser.username.toLowerCase() !== currentUser.username.toLowerCase()) {
+              const existing = map.get(fbUser.id);
+              map.set(fbUser.id, {
+                id: fbUser.id,
+                userId: fbUser.id,
+                name: fbUser.name,
+                username: fbUser.username,
+                avatar: fbUser.avatar,
+                country: fbUser.country,
+                flag: fbUser.flag,
+                phoneNumber: fbUser.phoneNumber || '',
+                bio: fbUser.bio || 'Membre vérifié sur AfriChat 🌍',
+                isOnline: true,
+                lastSeen: 'En ligne',
+                isVIP: fbUser.isVIP,
+                isVerified: fbUser.isVerified,
+                isFriend: existing ? existing.isFriend : false,
+                isBlocked: existing ? existing.isBlocked : false,
+                reportsCount: 0,
+                mutualFriendsCount: existing ? existing.mutualFriendsCount : 4,
+                category: fbUser.isVIP ? 'creator' : 'friend',
+              });
+            }
+          });
+
+          return Array.from(map.values());
+        });
+      }
+    });
+
+    // Auto-refresh polling every 20 seconds to guarantee fresh updates
     const interval = setInterval(() => {
       fetchSupabaseUsers(false);
     }, 20000);
@@ -662,6 +763,7 @@ export default function App() {
 
     return () => {
       unsubscribeSupabase();
+      unsubscribeFirestoreUsers();
       clearInterval(interval);
     };
   }, [currentUser.id, currentUser.username]);
@@ -1173,8 +1275,13 @@ export default function App() {
     );
   };
 
-  // Handle Send Message (Direct chat or VIP Salon)
-  const handleSendMessage = (conversationId: string, text?: string, audioDuration?: string) => {
+  // Handle Send Message (Direct chat, VIP Salon, or Game Challenge)
+  const handleSendMessage = (
+    conversationId: string, 
+    text?: string, 
+    audioDuration?: string,
+    gameChallenge?: GameChallengeData
+  ) => {
     const targetChat = conversations.find((c) => c.id === conversationId);
     
     // Check if recipient is blocked
@@ -1194,17 +1301,18 @@ export default function App() {
       }
     }
 
-    const newMsg = {
+    const newMsg: Message = {
       id: `msg_${Date.now()}`,
       senderId: currentUser.id,
       senderName: currentUser.name,
       senderAvatar: currentUser.avatar,
-      text: text,
+      text: text || (gameChallenge ? `🎮 Défi Morpion lancé par ${currentUser.name} !` : ''),
       audioDuration: audioDuration,
       mediaType: audioDuration ? ('audio' as const) : undefined,
       timestamp: 'À l’instant',
       status: 'sent' as const,
       isVipMessage: currentUser.isVIP,
+      gameChallenge: gameChallenge,
     };
 
     // 1. Immediately persist message to Cloud Firestore & Supabase database
@@ -1218,7 +1326,7 @@ export default function App() {
         if (c.id === conversationId) {
           return {
             ...c,
-            lastMessage: text || `🎙️ Note vocale (${audioDuration})`,
+            lastMessage: text || (gameChallenge ? '🎮 Défi Morpion lancé' : `🎙️ Note vocale (${audioDuration})`),
             lastMessageTime: 'À l’instant',
             messages: [...c.messages, newMsg],
           };
@@ -1226,6 +1334,73 @@ export default function App() {
         return c;
       })
     );
+  };
+
+  // Launch or Join a Morpion (Tic-Tac-Toe) Challenge
+  const handleOpenGameChallenge = (opponent?: Contact | User | null, existingGameId?: string, stakeFcfa: number = 0) => {
+    const targetOpponent = opponent || null;
+    const gameId = existingGameId || `tictactoe_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    
+    setGameOpponent(targetOpponent);
+    setActiveGameId(gameId);
+    setGameStake(stakeFcfa);
+    setIsGameModalOpen(true);
+
+    // If opponent exists and this is a brand new challenge (not joining an existing gameId), send a challenge card into chat
+    if (targetOpponent && !existingGameId) {
+      const oppUserId = (targetOpponent as Contact).userId || targetOpponent.id;
+      let targetConv = conversations.find((c) => 
+        c.participantIds?.includes(oppUserId) || 
+        c.name.toLowerCase() === targetOpponent.name.toLowerCase()
+      );
+
+      const challengeData: GameChallengeData = {
+        gameId,
+        gameType: 'tictactoe',
+        challengerId: currentUser.id,
+        challengerName: currentUser.name,
+        challengerAvatar: currentUser.avatar,
+        opponentId: oppUserId,
+        opponentName: targetOpponent.name,
+        stakeFcfa,
+        status: 'pending',
+        createdAt: new Date().toISOString()
+      };
+
+      if (targetConv) {
+        handleSendMessage(targetConv.id, '', undefined, challengeData);
+      } else {
+        const initMsg: Message = {
+          id: `msg_game_${Date.now()}`,
+          senderId: currentUser.id,
+          senderName: currentUser.name,
+          senderAvatar: currentUser.avatar,
+          text: `🎮 Défi Morpion lancé par ${currentUser.name} !`,
+          timestamp: 'À l’instant',
+          status: 'sent',
+          gameChallenge: challengeData,
+        };
+
+        const newConv: ChatConversation = {
+          id: `conv_${Date.now()}`,
+          type: 'direct',
+          name: targetOpponent.name,
+          avatar: targetOpponent.avatar,
+          lastMessage: '🎮 Défi Morpion lancé',
+          lastMessageTime: 'À l’instant',
+          unreadCount: 0,
+          participantIds: [currentUser.id, oppUserId],
+          messages: [initMsg],
+          isOnline: (targetOpponent as Contact).isOnline || false,
+        };
+
+        saveConversationToFirestore(newConv);
+        saveMessageToFirestore(newConv.id, initMsg);
+        setConversations((prev) => [newConv, ...prev]);
+      }
+
+      triggerSecurityToast(`⚔️ Défi Morpion envoyé à ${targetOpponent.name} ! Préparez-vous à jouer ! 🎮`, 'success');
+    }
   };
 
   // Contacts Handlers
@@ -2052,6 +2227,7 @@ export default function App() {
               onToggleFriend={handleToggleFriend}
               onOpenGroupRoles={handleOpenGroupRoles}
               onOpenFriendsModal={() => handleOpenFriends('online')}
+              onOpenGameChallenge={(contact, gameId, stake) => handleOpenGameChallenge(contact, gameId, stake)}
             />
           )}
 
@@ -2320,6 +2496,10 @@ export default function App() {
             creatorAvatar: contact.avatar,
           });
         }}
+        onOpenGameChallenge={(contact) => {
+          setIsContactsModalOpen(false);
+          handleOpenGameChallenge(contact);
+        }}
         onAddContact={handleAddContact}
       />
 
@@ -2359,6 +2539,10 @@ export default function App() {
             creatorAvatar: contact.avatar,
           });
         }}
+        onOpenGameChallenge={(contact) => {
+          setIsFriendsModalOpen(false);
+          handleOpenGameChallenge(contact);
+        }}
       />
 
       {/* Contact Profile & Quick Action Modal */}
@@ -2393,6 +2577,10 @@ export default function App() {
         onOpenStarVip={(contact, serviceType) => {
           setIsContactProfileOpen(false);
           handleOpenStarVip(contact, serviceType);
+        }}
+        onOpenGameChallenge={(contact) => {
+          setIsContactProfileOpen(false);
+          handleOpenGameChallenge(contact);
         }}
       />
 
@@ -2556,6 +2744,21 @@ export default function App() {
           triggerSecurityToast(`🚀 Notification push "${announcement.title}" diffusée !`, 'success');
         }}
         onAddAuditLog={(log) => setAuditLogs((prev) => [log, ...prev])}
+      />
+
+      {/* Mini-Jeu Morpion (Tic-Tac-Toe) Multijoueur Supabase & IA */}
+      <TicTacToeGameModal
+        isOpen={isGameModalOpen}
+        onClose={() => {
+          setIsGameModalOpen(false);
+          setGameOpponent(null);
+          setActiveGameId(undefined);
+        }}
+        currentUser={currentUser}
+        opponent={gameOpponent}
+        gameId={activeGameId}
+        stakeFcfa={gameStake}
+        onTriggerToast={triggerSecurityToast}
       />
     </div>
   );

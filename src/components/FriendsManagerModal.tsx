@@ -22,7 +22,8 @@ import {
   Filter,
   RefreshCw,
   ArrowLeft,
-  Database
+  Database,
+  Swords
 } from 'lucide-react';
 import { Contact, User } from '../types';
 import { COUNTRIES } from '../data/mockData';
@@ -54,6 +55,7 @@ interface FriendsManagerModalProps {
   onOpenChatWithContact: (contact: Contact) => void;
   onStartCallWithContact: (contact: Contact, type: 'audio' | 'video') => void;
   onSendTipToContact: (contact: Contact) => void;
+  onOpenGameChallenge?: (contact: Contact) => void;
   onTriggerToast?: (message: string, type?: 'success' | 'danger' | 'info') => void;
   initialTab?: 'online' | 'add' | 'requests' | 'all';
   onRefreshUsers?: () => Promise<void>;
@@ -76,6 +78,7 @@ export const FriendsManagerModal: React.FC<FriendsManagerModalProps> = ({
   onOpenChatWithContact,
   onStartCallWithContact,
   onSendTipToContact,
+  onOpenGameChallenge,
   onTriggerToast,
   initialTab = 'online',
   onRefreshUsers,
@@ -488,6 +491,18 @@ export const FriendsManagerModal: React.FC<FriendsManagerModalProps> = ({
 
                         {/* Quick Actions */}
                         <div className="flex items-center space-x-1 shrink-0">
+                          {onOpenGameChallenge && (
+                            <button
+                              onClick={() => {
+                                onClose();
+                                onOpenGameChallenge(contact);
+                              }}
+                              className="p-2 rounded-xl bg-gradient-to-r from-amber-500/20 to-orange-500/20 hover:from-amber-500/30 text-amber-300 border border-amber-500/40 transition-all cursor-pointer shadow-sm hover:scale-105"
+                              title="Défier au Morpion (Tic-Tac-Toe)"
+                            >
+                              <Swords className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                           <button
                             onClick={() => {
                               onClose();
@@ -748,6 +763,18 @@ export const FriendsManagerModal: React.FC<FriendsManagerModalProps> = ({
 
                         {/* Actions */}
                         <div className="flex items-center space-x-1 shrink-0">
+                          {onOpenGameChallenge && (
+                            <button
+                              onClick={() => {
+                                onClose();
+                                onOpenGameChallenge(contact);
+                              }}
+                              className="p-2 rounded-xl bg-gradient-to-r from-amber-500/20 to-orange-500/20 hover:from-amber-500/30 text-amber-300 border border-amber-500/40 transition-all cursor-pointer shadow-sm hover:scale-105"
+                              title="Défier au Morpion (Tic-Tac-Toe)"
+                            >
+                              <Swords className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                           <button
                             onClick={() => {
                               onClose();

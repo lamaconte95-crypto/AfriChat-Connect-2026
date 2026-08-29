@@ -27,10 +27,13 @@ import {
   ShieldAlert,
   AlertTriangle,
   X,
-  UserCheck
+  UserCheck,
+  Swords,
+  Gamepad2
 } from 'lucide-react';
 import { ChatConversation, Message, User, Contact } from '../types';
 import { supabaseSearchUsers } from '../services/supabaseService';
+import { UserAvatar } from './UserAvatar';
 
 interface MessagesViewProps {
   conversations: ChatConversation[];
@@ -49,6 +52,7 @@ interface MessagesViewProps {
   onToggleFriend?: (contactId: string) => void;
   onOpenGroupRoles?: (conversation: ChatConversation) => void;
   onOpenFriendsModal?: () => void;
+  onOpenGameChallenge?: (contact?: Contact | User | null, gameId?: string, stakeFcfa?: number) => void;
   selectedChatId?: string | null;
   onSelectChatId?: (id: string | null) => void;
 }
@@ -70,6 +74,7 @@ export const MessagesView: React.FC<MessagesViewProps> = ({
   onToggleFriend,
   onOpenGroupRoles,
   onOpenFriendsModal,
+  onOpenGameChallenge,
   selectedChatId: externalSelectedChatId,
   onSelectChatId: externalOnSelectChatId,
 }) => {
@@ -627,15 +632,45 @@ export const MessagesView: React.FC<MessagesViewProps> = ({
               )}
 
               {!activeChat.isVIPRoom && !isContactBlocked && !isContactSuspended && activeChat.type !== 'group' && (
-                <button
-                  id="chat-send-money-btn"
-                  onClick={() => onSendMobileMoneyTip(activeChat.name)}
-                  className="px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 to-orange-500/20 hover:from-amber-500/30 border border-amber-500/40 text-amber-300 text-xs font-bold flex items-center space-x-1 cursor-pointer transition-all"
-                  title="Envoyer de l'argent Mobile Money"
-                >
-                  <Coins className="w-3.5 h-3.5 text-amber-400" />
-                  <span className="hidden sm:inline">Pay MoMo</span>
-                </button>
+                <>
+                  <button
+                    id="chat-header-game-challenge-btn"
+                    onClick={() => {
+                      if (onOpenGameChallenge) {
+                        onOpenGameChallenge(correspondingContact || {
+                          id: activeChat.participantIds.find(id => id !== currentUser.id) || activeChat.id,
+                          userId: activeChat.participantIds.find(id => id !== currentUser.id) || activeChat.id,
+                          name: activeChat.name,
+                          username: `@${activeChat.name.toLowerCase().replace(/\s+/g, '')}`,
+                          avatar: activeChat.avatar,
+                          country: 'Afrique',
+                          flag: '🌍',
+                          isOnline: activeChat.isOnline || false,
+                          isFriend: true,
+                          isVIP: false,
+                          isVerified: false,
+                          isBlocked: false,
+                        });
+                      }
+                    }}
+                    className="px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-amber-500/30 hover:from-amber-500/30 border border-amber-500/50 text-amber-300 text-xs font-black flex items-center space-x-1.5 cursor-pointer shadow-sm transition-all hover:scale-105 active:scale-95"
+                    title="Défier en jeu : Lancer une partie de Morpion (Tic-Tac-Toe) multijoueur en temps réel"
+                  >
+                    <Swords className="w-3.5 h-3.5 text-amber-400" />
+                    <span className="hidden sm:inline">Défier en jeu</span>
+                    <span className="sm:hidden">Défier</span>
+                  </button>
+
+                  <button
+                    id="chat-send-money-btn"
+                    onClick={() => onSendMobileMoneyTip(activeChat.name)}
+                    className="px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 to-orange-500/20 hover:from-amber-500/30 border border-amber-500/40 text-amber-300 text-xs font-bold flex items-center space-x-1 cursor-pointer transition-all"
+                    title="Envoyer de l'argent Mobile Money"
+                  >
+                    <Coins className="w-3.5 h-3.5 text-amber-400" />
+                    <span className="hidden sm:inline">Pay MoMo</span>
+                  </button>
+                </>
               )}
 
               {!isContactBlocked && !isContactSuspended && (
@@ -893,14 +928,72 @@ export const MessagesView: React.FC<MessagesViewProps> = ({
                     })()}
 
                     <div
-                      className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-xs shadow-md space-y-1 ${
-                        isMe
+                      className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-xs shadow-md space-y-2 ${
+                        msg.gameChallenge
+                          ? 'bg-stone-900 border border-amber-500/60 text-stone-100 shadow-xl shadow-amber-500/10'
+                          : isMe
                           ? 'bg-gradient-to-r from-amber-600 to-orange-600 text-stone-950 font-medium rounded-br-none'
                           : 'bg-stone-800 border border-stone-700/80 text-stone-100 rounded-bl-none'
                       }`}
                     >
-                      {/* Audio voice note display */}
-                      {msg.mediaType === 'audio' ? (
+                      {/* Game Challenge Card */}
+                      {msg.gameChallenge ? (
+                        <div className="space-y-2.5 py-1">
+                          <div className="flex items-center space-x-2">
+                            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-500 text-stone-950 flex items-center justify-center font-black shadow">
+                              <Swords className="w-4 h-4 stroke-[2.5]" />
+                            </div>
+                            <div>
+                              <div className="font-black text-amber-400 text-xs flex items-center space-x-1.5">
+                                <span>Défi Morpion Panafricain</span>
+                                <span className="px-1 py-0.5 rounded text-[9px] bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30">
+                                  3x3
+                                </span>
+                              </div>
+                              <div className="text-[10px] text-stone-400">Match multijoueur synchronisé</div>
+                            </div>
+                          </div>
+
+                          <div className="p-2 rounded-xl bg-stone-950/80 border border-stone-800 flex items-center justify-between text-[11px]">
+                            <div className="flex items-center space-x-1.5">
+                              <UserAvatar name={msg.gameChallenge.hostName} avatar={msg.gameChallenge.hostAvatar} size="xs" />
+                              <span className="font-bold text-stone-200">{msg.gameChallenge.hostName}</span>
+                            </div>
+                            <span className="font-black text-amber-400 text-[10px] px-1.5 py-0.5 rounded bg-stone-900 border border-stone-800">VS</span>
+                            <div className="flex items-center space-x-1.5">
+                              <span className="font-bold text-stone-200">{msg.gameChallenge.guestName}</span>
+                              <UserAvatar name={msg.gameChallenge.guestName} avatar={msg.gameChallenge.guestAvatar} size="xs" />
+                            </div>
+                          </div>
+
+                          {msg.text && (
+                            <p className="text-[11px] text-stone-300 italic">{msg.text}</p>
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (onOpenGameChallenge) {
+                                const targetContact = correspondingContact || ({
+                                  id: isMe ? msg.gameChallenge!.guestId : msg.gameChallenge!.hostId,
+                                  userId: isMe ? msg.gameChallenge!.guestId : msg.gameChallenge!.hostId,
+                                  name: isMe ? msg.gameChallenge!.guestName : msg.gameChallenge!.hostName,
+                                  username: '',
+                                  avatar: isMe ? msg.gameChallenge!.guestAvatar : msg.gameChallenge!.hostAvatar,
+                                  flag: '🌍',
+                                  isOnline: true,
+                                } as Contact);
+                                onOpenGameChallenge(targetContact, msg.gameChallenge!.gameId);
+                              }
+                            }}
+                            className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-stone-950 font-black text-xs flex items-center justify-center space-x-1.5 shadow-md shadow-amber-500/20 hover:scale-102 active:scale-98 transition-all cursor-pointer"
+                          >
+                            <Sparkles className="w-3.5 h-3.5" />
+                            <span>Rejoindre la partie ⚔️</span>
+                          </button>
+                        </div>
+                      ) : msg.mediaType === 'audio' ? (
+                        /* Audio voice note display */
                         <div className="flex items-center space-x-3 py-1">
                           <button
                             onClick={() => setPlayingAudioId(playingAudioId === msg.id ? null : msg.id)}
@@ -928,7 +1021,11 @@ export const MessagesView: React.FC<MessagesViewProps> = ({
                       )}
 
                       <div className={`flex items-center justify-end space-x-1 text-[9px] ${
-                        isMe ? 'text-stone-950/70 font-bold' : 'text-stone-400'
+                        msg.gameChallenge
+                          ? 'text-stone-400'
+                          : isMe
+                          ? 'text-stone-950/70 font-bold'
+                          : 'text-stone-400'
                       }`}>
                         <span>{msg.timestamp}</span>
                         {isMe && (
@@ -998,6 +1095,33 @@ export const MessagesView: React.FC<MessagesViewProps> = ({
                     title="Envoyer Mobile Money"
                   >
                     <Coins className="w-4 h-4" />
+                  </button>
+
+                  <button
+                    type="button"
+                    id="chat-input-game-challenge-btn"
+                    onClick={() => {
+                      if (onOpenGameChallenge) {
+                        onOpenGameChallenge(correspondingContact || {
+                          id: activeChat.participantIds.find(id => id !== currentUser.id) || activeChat.id,
+                          userId: activeChat.participantIds.find(id => id !== currentUser.id) || activeChat.id,
+                          name: activeChat.name,
+                          username: `@${activeChat.name.toLowerCase().replace(/\s+/g, '')}`,
+                          avatar: activeChat.avatar,
+                          country: 'Afrique',
+                          flag: '🌍',
+                          isOnline: activeChat.isOnline || false,
+                          isFriend: true,
+                          isVIP: false,
+                          isVerified: false,
+                          isBlocked: false,
+                        });
+                      }
+                    }}
+                    className="p-2 rounded-xl bg-gradient-to-tr from-amber-500/20 to-orange-500/20 text-amber-400 hover:text-amber-300 hover:bg-amber-500/30 transition-all cursor-pointer border border-amber-500/30 shadow-sm"
+                    title="Défier en jeu (Morpion Tic-Tac-Toe multijoueur)"
+                  >
+                    <Swords className="w-4 h-4" />
                   </button>
 
                   <div className="flex-1 flex items-center bg-stone-800 rounded-2xl border border-stone-700/80 px-3.5 py-2 focus-within:border-amber-500">

@@ -17,7 +17,9 @@ import {
   Globe, 
   Share2,
   Heart,
-  ShieldCheck
+  ShieldCheck,
+  Swords,
+  Gamepad2
 } from 'lucide-react';
 import { Contact, User } from '../types';
 
@@ -33,6 +35,7 @@ interface ContactProfileModalProps {
   onOpenChat?: (contact: Contact) => void;
   onSendMobileMoneyTip?: (contact: Contact) => void;
   onOpenStarVip?: (contact: Contact, serviceType: 'direct_message' | 'call_reservation') => void;
+  onOpenGameChallenge?: (contact: Contact) => void;
 }
 
 export const ContactProfileModal: React.FC<ContactProfileModalProps> = ({
@@ -47,6 +50,7 @@ export const ContactProfileModal: React.FC<ContactProfileModalProps> = ({
   onOpenChat,
   onSendMobileMoneyTip,
   onOpenStarVip,
+  onOpenGameChallenge,
 }) => {
   const [showBlockConfirm, setShowBlockConfirm] = useState(false);
   const [isFollowing, setIsFollowing] = useState(contact?.isFriend || false);
@@ -273,6 +277,20 @@ export const ContactProfileModal: React.FC<ContactProfileModalProps> = ({
                     <span>MoMo</span>
                   </button>
                 </div>
+
+                {/* Game Challenge Button: Défier en jeu Morpion 3x3 */}
+                <button
+                  id="contact-action-game-challenge-btn"
+                  onClick={() => {
+                    onOpenGameChallenge?.(contact);
+                    onClose();
+                  }}
+                  className="w-full py-2.5 px-4 rounded-2xl bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-amber-500/20 hover:from-amber-500/30 hover:to-orange-500/30 border border-amber-500/40 text-amber-300 font-black text-xs flex items-center justify-center space-x-2 transition-all shadow-md cursor-pointer hover:scale-102 active:scale-98"
+                  title="Défier en jeu au Morpion (Tic-Tac-Toe multijoueur)"
+                >
+                  <Swords className="w-4 h-4 text-amber-400 stroke-[2.5]" />
+                  <span>Défier en jeu (Morpion Tic-Tac-Toe) 🎮</span>
+                </button>
               </div>
             )}
 
