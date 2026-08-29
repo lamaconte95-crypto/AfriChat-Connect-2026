@@ -1,0 +1,12 @@
+{
+  "projectId": "africhat-connect",
+  "appId": "1:1019647791780:web:5a4b18f6e54504aad5cc31",
+  "apiKey": "AIzaSyCLl9uWB6acyVDptk-2J79OVEAzNut4m5s",
+  "authDomain": "africhat-connect.firebaseapp.com",
+  "firestoreDatabaseId": "(default)",
+  "storageBucket": "africhat-connect.firebasestorage.app",
+  "messagingSenderId": "1019647791780",
+  "measurementId": "",
+  "oAuthClientId": "",
+  "recaptchaSiteKey": ""
+}

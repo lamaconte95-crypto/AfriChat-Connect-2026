@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="100%" height="100%">
+  <defs>
+    <linearGradient id="afriGrad192" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b" />
+      <stop offset="50%" stop-color="#f97316" />
+      <stop offset="100%" stop-color="#10b981" />
+    </linearGradient>
+    <linearGradient id="bgGrad192" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1c1917" />
+      <stop offset="100%" stop-color="#0c0a09" />
+    </linearGradient>
+  </defs>
+  <rect width="192" height="192" rx="48" fill="url(#bgGrad192)" stroke="#f59e0b" stroke-width="5" />
+  
+  <g transform="translate(48, 48) scale(0.1875)">
+    <path d="M256 32C132.3 32 32 124.9 32 239.5c0 47.9 17.5 92.1 47.2 127.1L49 464.3c-4.4 13.3 6.9 26.6 20.7 24.3l108.5-17.9c24.6 9.6 50.8 14.8 77.8 14.8 123.7 0 224-92.9 224-207.5S379.7 32 256 32z" fill="url(#afriGrad192)"/>
+    <text x="256" y="290" font-family="Arial, sans-serif" font-size="140" font-weight="900" text-anchor="middle" fill="#0c0a09">AC</text>
+  </g>
+</svg>

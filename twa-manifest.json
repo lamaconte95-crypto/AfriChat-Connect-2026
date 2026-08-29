@@ -1,0 +1,27 @@
+{
+  "packageId": "com.africhat.connect",
+  "host": "ais-pre-s2s35mhm7jistxd6tgvliu-325749405708.europe-west3.run.app",
+  "name": "AfriChat Connect",
+  "launcherName": "AfriChat",
+  "display": "standalone",
+  "themeColor": "#f59e0b",
+  "themeColorDark": "#0c0a09",
+  "navigationColor": "#0c0a09",
+  "navigationColorDark": "#0c0a09",
+  "backgroundColor": "#0c0a09",
+  "enableNotifications": true,
+  "startUrl": "/",
+  "iconUrl": "https://ais-pre-s2s35mhm7jistxd6tgvliu-325749405708.europe-west3.run.app/icon-512.svg",
+  "maskableIconUrl": "https://ais-pre-s2s35mhm7jistxd6tgvliu-325749405708.europe-west3.run.app/icon-512.svg",
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "signingKey": {
+    "path": "./android.keystore",
+    "alias": "africhat"
+  },
+  "splashScreenFadeOutDuration": 300,
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "orientation": "portrait-primary",
+  "fingerprints": []
+}

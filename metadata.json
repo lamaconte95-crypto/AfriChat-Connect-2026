@@ -1,0 +1,6 @@
+{
+  "name": "AfriChat Connect",
+  "description": "Réseau social et messagerie panafricaine avec intégration Supabase & Agora RTC, Assistant IA AfriChat multilingue, Studio de diffusion Live, Mises à jour automatisées par IA pour l'administrateur, Web TV, VIP Star et Mobile Money.",
+  "requestFramePermissions": ["camera", "microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

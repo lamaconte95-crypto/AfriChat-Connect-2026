@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="fr" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    
+    <!-- Primary SEO Meta Tags -->
+    <title>AfriChat Connect - Réseau Social, Messagerie & Web TV d'Afrique</title>
+    <meta name="title" content="AfriChat Connect - Réseau Social, Messagerie & Web TV d'Afrique" />
+    <meta name="description" content="AfriChat Connect est le réseau social et la plateforme de messagerie moderne conçue pour l'Afrique et l'international. Fil d'actualité vidéo, AfriShorts, Web TV live avec boost de visibilité, salons VIP exclusifs et paiement Mobile Money intégré (Orange Money, MTN MoMo, Wave, Moov Money)." />
+    <meta name="keywords" content="AfriChat Connect, AfriChat, réseau social Afrique, messagerie africaine, chat afrique, Web TV Afrique, AfriShorts, créateurs africains, Mobile Money, Wave, Orange Money, MTN MoMo, Moov Money, salons VIP, paiements Afrique, Côte d'Ivoire, Sénégal, Cameroun, Mali, Guinée, Gabon, Togo, Bénin, RDC, diaspora africaine" />
+    <meta name="author" content="AfriChat Connect" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <meta name="application-name" content="AfriChat Connect" />
+    <meta name="theme-color" content="#f59e0b" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://africhat-connect.firebaseapp.com/" />
+    
+    <!-- PWA & Mobile Web App Meta Tags -->
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+    <link rel="icon" type="image/svg+xml" href="/icon-192.svg" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="AfriChat Connect" />
+
+    <!-- Open Graph / Facebook / WhatsApp SEO -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://africhat-connect.firebaseapp.com/" />
+    <meta property="og:site_name" content="AfriChat Connect" />
+    <meta property="og:title" content="AfriChat Connect - Le Réseau Social & Messagerie 100% Afrique" />
+    <meta property="og:description" content="Rejoignez la communauté AfriChat Connect : Fil d'actualité, AfriShorts, Web TV Live, Salons VIP et transfert Mobile Money en un clic !" />
+    <meta property="og:image" content="/icon-512.svg" />
+    <meta property="og:image:width" content="512" />
+    <meta property="og:image:height" content="512" />
+    <meta property="og:image:alt" content="Logo officiel d'AfriChat Connect" />
+    <meta property="og:locale" content="fr_FR" />
+
+    <!-- Twitter / X Cards -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://africhat-connect.firebaseapp.com/" />
+    <meta name="twitter:title" content="AfriChat Connect - Réseau Social, Messagerie & Web TV Afrique" />
+    <meta name="twitter:description" content="Vidéos courtes AfriShorts, Web TV live, chat chiffré, salons créateurs et paiement Mobile Money instantané." />
+    <meta name="twitter:image" content="/icon-512.svg" />
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <!-- JSON-LD Structured Data Schema for Google SEO -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "AfriChat Connect",
+      "alternateName": ["AfriChat", "AfriChat App"],
+      "url": "https://africhat-connect.firebaseapp.com/",
+      "logo": "https://africhat-connect.firebaseapp.com/icon-512.svg",
+      "description": "Plateforme sociale et messagerie instantanée panafricaine avec fil d'actualité, Web TV live, salons VIP et paiement Mobile Money.",
+      "applicationCategory": "SocialNetworkingApplication",
+      "operatingSystem": "All",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "XOF"
+      },
+      "author": {
+        "@type": "Organization",
+        "name": "AfriChat Connect Inc."
+      }
+    }
+    </script>
+  </head>
+  <body class="bg-stone-950 text-stone-100 antialiased selection:bg-amber-500 selection:text-stone-950">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    
+    <!-- PWA Service Worker Registration -->
+    <script>
+      if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then(reg => console.log('AfriChat SW registered:', reg.scope))
+            .catch(err => console.log('AfriChat SW registration skipped or failed:', err));
+        });
+      }
+    </script>
+  </body>
+</html>

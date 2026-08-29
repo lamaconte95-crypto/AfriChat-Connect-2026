@@ -1,0 +1,108 @@
+{
+  "entities": {
+    "users": {
+      "title": "User",
+      "description": "User account profiles, credentials, and wallet state",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "username": { "type": "string" },
+        "email": { "type": "string" },
+        "phoneNumber": { "type": "string" },
+        "avatar": { "type": "string" },
+        "country": { "type": "string" },
+        "countryCode": { "type": "string" },
+        "flag": { "type": "string" },
+        "bio": { "type": "string" },
+        "followersCount": { "type": "number" },
+        "followingCount": { "type": "number" },
+        "isVIP": { "type": "boolean" },
+        "isVerified": { "type": "boolean" },
+        "walletBalance": { "type": "number" },
+        "currency": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "authProvider": { "type": "string" }
+      },
+      "required": ["id", "name", "username"]
+    },
+    "conversations": {
+      "title": "Conversation",
+      "description": "Chat conversations between users or in VIP group rooms",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "type": "string" },
+        "name": { "type": "string" },
+        "avatar": { "type": "string" },
+        "participantIds": { "type": "array" },
+        "lastMessage": { "type": "string" },
+        "lastMessageTime": { "type": "string" },
+        "unreadCount": { "type": "number" },
+        "isVIPRoom": { "type": "boolean" },
+        "hostName": { "type": "string" },
+        "entryFee": { "type": "number" },
+        "currency": { "type": "string" },
+        "isUnlocked": { "type": "boolean" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "type", "participantIds"]
+    },
+    "messages": {
+      "title": "Message",
+      "description": "Chat messages sent between users or in group rooms",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "conversationId": { "type": "string" },
+        "senderId": { "type": "string" },
+        "senderName": { "type": "string" },
+        "senderAvatar": { "type": "string" },
+        "text": { "type": "string" },
+        "mediaType": { "type": "string" },
+        "mediaUrl": { "type": "string" },
+        "audioDuration": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "status": { "type": "string" },
+        "isVipMessage": { "type": "boolean" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "conversationId", "senderId"]
+    },
+    "posts": {
+      "title": "Post",
+      "description": "Social feed posts published by users",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "content": { "type": "string" },
+        "mediaType": { "type": "string" },
+        "mediaUrl": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "likesCount": { "type": "number" },
+        "commentsCount": { "type": "number" },
+        "isVIPOnly": { "type": "boolean" }
+      },
+      "required": ["id", "userId", "content"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "users",
+      "description": "User profile documents keyed by Firebase Auth UID"
+    },
+    "/conversations/{conversationId}": {
+      "schema": "conversations",
+      "description": "Chat conversation threads"
+    },
+    "/conversations/{conversationId}/messages/{messageId}": {
+      "schema": "messages",
+      "description": "Messages belonging to a conversation"
+    },
+    "/posts/{postId}": {
+      "schema": "posts",
+      "description": "Public social posts"
+    }
+  }
+}
