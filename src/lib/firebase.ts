@@ -145,11 +145,16 @@ export async function updateUserProfileDoc(
   partial: Partial<User>
 ): Promise<void> {
   try {
+    if (!uid) return;
     const userDocRef = doc(db, 'users', uid);
-    await updateDoc(userDocRef, {
-      ...partial,
-      updatedAt: serverTimestamp(),
-    });
+    await setDoc(
+      userDocRef,
+      {
+        ...partial,
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
   } catch (error) {
     console.warn('Could not update user profile in Firestore:', error);
   }

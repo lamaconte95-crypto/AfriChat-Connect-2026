@@ -451,20 +451,37 @@ export const supabaseUpdateProfile = async (userId: string, updates: Partial<Use
       id: userId,
       updated_at: new Date().toISOString(),
     };
-    if (updates.name !== undefined) payload.name = updates.name;
-    if (updates.username !== undefined) payload.username = updates.username;
-    if (updates.bio !== undefined) payload.bio = updates.bio;
+    if (updates.name !== undefined) {
+      payload.name = updates.name;
+      payload.full_name = updates.name;
+    }
+    if (updates.username !== undefined) {
+      payload.username = updates.username;
+    }
+    if (updates.bio !== undefined) {
+      payload.bio = updates.bio;
+    }
     if (updates.avatar !== undefined) {
       payload.avatar_url = updates.avatar;
       payload.avatar = updates.avatar;
     }
-    if (updates.country !== undefined) payload.country = updates.country;
-    if (updates.flag !== undefined) payload.flag = updates.flag;
-    if (updates.phoneNumber !== undefined) payload.phone_number = updates.phoneNumber;
-    if (updates.isVIP !== undefined) payload.is_vip = updates.isVIP;
-    if (updates.walletBalance !== undefined) payload.wallet_balance = updates.walletBalance;
+    if (updates.country !== undefined) {
+      payload.country = updates.country;
+    }
+    if (updates.flag !== undefined) {
+      payload.flag = updates.flag;
+    }
+    if (updates.phoneNumber !== undefined) {
+      payload.phone_number = updates.phoneNumber;
+    }
+    if (updates.isVIP !== undefined) {
+      payload.is_vip = updates.isVIP;
+    }
+    if (updates.walletBalance !== undefined) {
+      payload.wallet_balance = updates.walletBalance;
+    }
 
-    // Upsert into profiles
+    // Upsert into profiles table
     const { error: profileError } = await client.from('profiles').upsert(payload);
     if (profileError) {
       console.warn('Profiles upsert warning:', profileError);

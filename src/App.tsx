@@ -738,35 +738,208 @@ export default function App() {
   useEffect(() => {
     fetchSupabaseUsers();
 
+    // Helper to propagate profile changes (photo/name/VIP) across conversations, posts & reels
+    const propagateUserUpdateToUI = (
+      userId: string,
+      name: string,
+      username?: string,
+      avatar?: string,
+      country?: string,
+      flag?: string,
+      isVIP?: boolean
+    ) => {
+      if (!userId && !username) return;
+
+      // Update conversations and message avatars
+      setConversations((prev) =>
+        prev.map((conv) => {
+          let updatedConv = conv;
+          const isDirectMatch =
+            conv.type === 'direct' &&
+            (conv.participantIds.includes(userId) ||
+              (name && conv.name.toLowerCase() === name.toLowerCase()));
+
+          if (isDirectMatch) {
+            updatedConv = {
+              ...updatedConv,
+              name: name || conv.name,
+              avatar: avatar || conv.avatar,
+            };
+          }
+
+          const updatedMessages = updatedConv.messages.map((m) => {
+            if (
+              m.senderId === userId ||
+              (name && m.senderName && m.senderName.toLowerCase() === name.toLowerCase())
+            ) {
+              return {
+                ...m,
+                senderName: name || m.senderName,
+                senderAvatar: avatar || m.senderAvatar,
+              };
+            }
+            return m;
+          });
+
+          return { ...updatedConv, messages: updatedMessages };
+        })
+      );
+
+      // Update posts authored by this user
+      setPosts((prev) =>
+        prev.map((p) => {
+          if (
+            p.userId === userId ||
+            p.author.id === userId ||
+            (username && p.author.username?.toLowerCase() === username.toLowerCase())
+          ) {
+            return {
+              ...p,
+              author: {
+                ...p.author,
+                name: name || p.author.name,
+                username: username || p.author.username,
+                avatar: avatar || p.author.avatar,
+                country: country || p.author.country,
+                flag: flag || p.author.flag,
+                isVIPCreator: isVIP !== undefined ? isVIP : p.author.isVIPCreator,
+              },
+            };
+          }
+          return p;
+        })
+      );
+
+      // Update reels authored by this user
+      setReels((prev) =>
+        prev.map((r) => {
+          if (
+            r.userId === userId ||
+            r.author.id === userId ||
+            (username && r.author.username?.toLowerCase() === username.toLowerCase())
+          ) {
+            return {
+              ...r,
+              author: {
+                ...r.author,
+                name: name || r.author.name,
+                username: username || r.author.username,
+                avatar: avatar || r.author.avatar,
+                country: country || r.author.country,
+                flag: flag || r.author.flag,
+                isVIPCreator: isVIP !== undefined ? isVIP : r.author.isVIPCreator,
+              },
+            };
+          }
+          return r;
+        })
+      );
+    };
+
     // 1. Setup Supabase Realtime channel for instant profile broadcasts
     const unsubscribeSupabase = supabaseSubscribeProfiles((newContact, eventType) => {
-      if (newContact.id === currentUser.id) return;
+      // If current user modified profile on another device, sync local currentUser state
+      if (newContact.id === currentUser.id || newContact.userId === currentUser.id) {
+        setCurrentUser((prev) => ({
+          ...prev,
+          name: newContact.name || prev.name,
+          username: newContact.username || prev.username,
+          avatar: newContact.avatar || prev.avatar,
+          country: newContact.country || prev.country,
+          flag: newContact.flag || prev.flag,
+          bio: newContact.bio !== undefined ? newContact.bio : prev.bio,
+          isVIP: newContact.isVIP !== undefined ? newContact.isVIP : prev.isVIP,
+        }));
+        propagateUserUpdateToUI(
+          newContact.id,
+          newContact.name,
+          newContact.username,
+          newContact.avatar,
+          newContact.country,
+          newContact.flag,
+          newContact.isVIP
+        );
+        return;
+      }
 
       if (eventType === 'INSERT') {
         setContacts((prev) => {
-          const exists = prev.some((c) => c.id === newContact.id || c.username.toLowerCase() === newContact.username.toLowerCase());
+          const exists = prev.some(
+            (c) =>
+              c.id === newContact.id ||
+              c.username.toLowerCase() === newContact.username.toLowerCase()
+          );
           if (!exists) {
-            triggerSecurityToast(`🎉 Nouveau membre inscrit sur AfriChat : ${newContact.name} (${newContact.flag}) !`, 'info');
+            triggerSecurityToast(
+              `🎉 Nouveau membre inscrit sur AfriChat : ${newContact.name} (${newContact.flag}) !`,
+              'info'
+            );
             return [newContact, ...prev];
           }
           return prev;
         });
       } else if (eventType === 'UPDATE') {
         setContacts((prev) =>
-          prev.map((c) => (c.id === newContact.id || c.username.toLowerCase() === newContact.username.toLowerCase() ? { ...c, ...newContact } : c))
+          prev.map((c) =>
+            c.id === newContact.id ||
+            c.username.toLowerCase() === newContact.username.toLowerCase()
+              ? { ...c, ...newContact }
+              : c
+          )
         );
       }
+
+      propagateUserUpdateToUI(
+        newContact.id,
+        newContact.name,
+        newContact.username,
+        newContact.avatar,
+        newContact.country,
+        newContact.flag,
+        newContact.isVIP
+      );
     });
 
     // 2. Setup Firestore Realtime listener for registered users
     const unsubscribeFirestoreUsers = subscribeToAllRegisteredUsers((cloudUsers) => {
       if (cloudUsers && cloudUsers.length > 0) {
+        // Sync current user if changed from another device
+        const matchedCurrent = cloudUsers.find(
+          (u) =>
+            u.id === currentUser.id ||
+            (u.email && currentUser.email && u.email.toLowerCase() === currentUser.email.toLowerCase())
+        );
+        if (matchedCurrent) {
+          setCurrentUser((prev) => ({
+            ...prev,
+            name: matchedCurrent.name || prev.name,
+            username: matchedCurrent.username || prev.username,
+            avatar: matchedCurrent.avatar || prev.avatar,
+            country: matchedCurrent.country || prev.country,
+            flag: matchedCurrent.flag || prev.flag,
+            bio: matchedCurrent.bio !== undefined ? matchedCurrent.bio : prev.bio,
+            isVIP: matchedCurrent.isVIP !== undefined ? matchedCurrent.isVIP : prev.isVIP,
+          }));
+          propagateUserUpdateToUI(
+            matchedCurrent.id,
+            matchedCurrent.name,
+            matchedCurrent.username,
+            matchedCurrent.avatar,
+            matchedCurrent.country,
+            matchedCurrent.flag,
+            matchedCurrent.isVIP
+          );
+        }
+
         setContacts((prevContacts) => {
           const map = new Map<string, Contact>();
           prevContacts.forEach((c) => map.set(c.id, c));
 
           cloudUsers.forEach((fbUser) => {
-            if (fbUser.id !== currentUser.id && fbUser.username.toLowerCase() !== currentUser.username.toLowerCase()) {
+            if (
+              fbUser.id !== currentUser.id &&
+              fbUser.username.toLowerCase() !== currentUser.username.toLowerCase()
+            ) {
               const existing = map.get(fbUser.id);
               map.set(fbUser.id, {
                 id: fbUser.id,
@@ -788,6 +961,16 @@ export default function App() {
                 mutualFriendsCount: existing ? existing.mutualFriendsCount : 4,
                 category: fbUser.isVIP ? 'creator' : 'friend',
               });
+
+              propagateUserUpdateToUI(
+                fbUser.id,
+                fbUser.name,
+                fbUser.username,
+                fbUser.avatar,
+                fbUser.country,
+                fbUser.flag,
+                fbUser.isVIP
+              );
             }
           });
 
