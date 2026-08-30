@@ -58,6 +58,7 @@ import {
   WebhookConfig
 } from '../types';
 import { STRIPE_VIP_PLANS } from '../data/mockData';
+import { UserAvatar } from './UserAvatar';
 import { 
   getWebhookConfig, 
   saveWebhookConfig, 
@@ -1261,10 +1262,15 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                           {/* User Avatar + Name */}
                           <td className="p-4">
                             <div className="flex items-center space-x-3">
-                              <img
-                                src={contact.avatar}
-                                alt={contact.name}
-                                className="w-10 h-10 rounded-2xl object-cover border border-stone-700"
+                              <UserAvatar
+                                name={contact.name}
+                                username={contact.username}
+                                avatar={contact.avatar}
+                                flag={contact.flag}
+                                isVIP={contact.isVIP}
+                                isVerified={contact.isVerified}
+                                size="md"
+                                className="w-10 h-10 border border-stone-700 shrink-0"
                               />
                               <div>
                                 <p className="font-bold text-white flex items-center space-x-1">
@@ -1492,10 +1498,13 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                         <tr key={salon.id} className="hover:bg-stone-800/40 transition-colors">
                           <td className="p-4">
                             <div className="flex items-center space-x-3">
-                              <img
-                                src={salon.avatar}
-                                alt={salon.name}
-                                className="w-10 h-10 rounded-2xl object-cover border border-stone-700"
+                              <UserAvatar
+                                name={salon.name}
+                                avatar={salon.avatar}
+                                isVIP={salon.isVIPRoom}
+                                type={salon.isVIPRoom || salon.isCommunity ? 'channel' : 'user'}
+                                size="md"
+                                className="w-10 h-10 border border-stone-700 shrink-0"
                               />
                               <div>
                                 <p className="font-bold text-white flex items-center space-x-1.5">

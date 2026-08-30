@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { User } from '../types';
 import { isIOSDevice } from '../services/deviceDetection';
+import { UserAvatar } from './UserAvatar';
 
 interface HeaderProps {
   currentUser: User;
@@ -338,13 +339,17 @@ export const Header: React.FC<HeaderProps> = ({
             <button
               id="header-user-avatar-btn"
               onClick={() => onSelectTab && onSelectTab('profile')}
-              className="relative w-8 h-8 rounded-xl overflow-hidden border border-amber-500/40 hover:border-amber-400 p-0.5 transition-all cursor-pointer group"
+              className="relative w-8 h-8 rounded-xl overflow-hidden border border-amber-500/40 hover:border-amber-400 p-0.5 transition-all cursor-pointer group flex items-center justify-center"
               title={`Profil de ${currentUser.name} (${currentUser.username})`}
             >
-              <img
-                src={currentUser.avatar}
-                alt={currentUser.name}
-                className="w-full h-full object-cover rounded-[9px]"
+              <UserAvatar
+                name={currentUser.name}
+                username={currentUser.username}
+                avatar={currentUser.avatar}
+                flag={currentUser.flag}
+                isVIP={currentUser.isVIP}
+                size="sm"
+                className="w-full h-full rounded-[8px]"
               />
               {currentUser.isVIP && (
                 <span className="absolute top-0 right-0 w-2.5 h-2.5 rounded-full bg-amber-400 border-2 border-stone-950" />

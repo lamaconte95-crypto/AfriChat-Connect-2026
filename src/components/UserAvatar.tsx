@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User, Image as ImageIcon, Building, Tv } from 'lucide-react';
 
 interface UserAvatarProps {
@@ -55,7 +55,12 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
 }) => {
   const [imageError, setImageError] = useState(false);
 
-  // Check if avatar is a valid real uploaded URL (not external unsplash/pixum/placeholder)
+  // Automatically reset image error state whenever avatar URL changes
+  useEffect(() => {
+    setImageError(false);
+  }, [avatar]);
+
+  // Check if avatar is a valid real uploaded URL (data URI, Supabase/Firebase storage URL, or valid image URL)
   const isInvalidOrExternal = !avatar || 
     avatar.includes('unsplash.com') || 
     avatar.includes('picsum.photos') || 

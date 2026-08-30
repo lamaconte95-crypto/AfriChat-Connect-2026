@@ -43,6 +43,7 @@ import { Post, User, Comment, AdItem, AdSettings, LiveStreamSession, OfficialPag
 import { AdSponsoredCard } from './AdSponsoredCard';
 import { SendGiftModal } from './SendGiftModal';
 import { FeedVideoPlayer } from './FeedVideoPlayer';
+import { UserAvatar } from './UserAvatar';
 import { openSocialDeepLink } from '../utils/socialDeepLinks';
 import { supabaseSearchUsers } from '../services/supabaseService';
 
@@ -281,10 +282,13 @@ export const FeedView: React.FC<FeedViewProps> = ({
                       })}
                       className="flex items-center space-x-2 min-w-0 flex-1 cursor-pointer"
                     >
-                      <img
-                        src={user.avatar}
-                        alt={user.name}
-                        className="w-8 h-8 rounded-lg object-cover border border-stone-700 shrink-0"
+                      <UserAvatar
+                        name={user.name}
+                        username={user.username}
+                        avatar={user.avatar}
+                        flag={user.flag}
+                        size="sm"
+                        className="w-8 h-8 rounded-lg shrink-0"
                       />
                       <div className="min-w-0 flex-1">
                         <p className="text-xs font-bold text-white truncate flex items-center space-x-1">
@@ -362,11 +366,12 @@ export const FeedView: React.FC<FeedViewProps> = ({
                 onClick={() => onOpenLiveSession?.(stream)}
                 className="flex flex-col items-center space-y-1 shrink-0 group cursor-pointer"
               >
-                <div className="relative w-14 h-14 rounded-2xl p-0.5 bg-gradient-to-tr from-rose-600 to-amber-500 group-hover:scale-105 transition-transform">
-                  <img
-                    src={stream.hostAvatar}
-                    alt={stream.hostName}
-                    className="w-full h-full rounded-[14px] object-cover"
+                <div className="relative w-14 h-14 rounded-2xl p-0.5 bg-gradient-to-tr from-rose-600 to-amber-500 group-hover:scale-105 transition-transform flex items-center justify-center">
+                  <UserAvatar
+                    name={stream.hostName}
+                    avatar={stream.hostAvatar}
+                    size="lg"
+                    className="w-full h-full rounded-[14px]"
                   />
                   <span className="absolute -top-1 -right-1 px-1 py-0.2 rounded-full bg-rose-600 text-white font-black text-[8px] animate-pulse">
                     LIVE
@@ -571,10 +576,15 @@ export const FeedView: React.FC<FeedViewProps> = ({
                       className="flex items-center space-x-3 cursor-pointer group"
                     >
                       <div className="relative">
-                        <img
-                          src={post.author.avatar}
-                          alt={post.author.name}
-                          className="w-11 h-11 rounded-full object-cover border-2 border-stone-700 group-hover:border-amber-400 transition-colors"
+                        <UserAvatar
+                          name={post.author.name}
+                          username={post.author.username}
+                          avatar={post.author.avatar}
+                          flag={post.author.flag}
+                          isVIP={post.author.isVIPCreator}
+                          isVerified={post.author.isVerified}
+                          size="lg"
+                          className="w-11 h-11 border-2 border-stone-700 group-hover:border-amber-400 transition-colors"
                         />
                         <span className="absolute -bottom-1 -right-1 text-xs drop-shadow">
                           {post.author.flag}
@@ -876,10 +886,12 @@ export const FeedView: React.FC<FeedViewProps> = ({
                         <div className="space-y-2">
                           {post.comments.slice(-2).map((c) => (
                             <div key={c.id} className="flex items-start space-x-2.5 text-xs">
-                              <img
-                                src={c.userAvatar}
-                                alt={c.userName}
-                                className="w-6 h-6 rounded-full object-cover mt-0.5"
+                              <UserAvatar
+                                name={c.userName}
+                                avatar={c.userAvatar}
+                                flag={c.userFlag}
+                                size="xs"
+                                className="w-6 h-6 mt-0.5 shrink-0"
                               />
                               <div className="flex-1 bg-stone-800/60 rounded-2xl px-3 py-2 border border-stone-800">
                                 <div className="flex items-center space-x-1">
@@ -899,10 +911,13 @@ export const FeedView: React.FC<FeedViewProps> = ({
                         onSubmit={(e) => handleCommentSubmit(post.id, e)}
                         className="flex items-center space-x-2 pt-1"
                       >
-                        <img
-                          src={currentUser.avatar}
-                          alt={currentUser.name}
-                          className="w-8 h-8 rounded-full object-cover border border-stone-700"
+                        <UserAvatar
+                          name={currentUser.name}
+                          username={currentUser.username}
+                          avatar={currentUser.avatar}
+                          flag={currentUser.flag}
+                          size="sm"
+                          className="w-8 h-8 shrink-0"
                         />
                         <div className="flex-1 flex items-center bg-stone-800 rounded-full border border-stone-700/80 px-3 py-1.5 focus-within:border-amber-500">
                           <input

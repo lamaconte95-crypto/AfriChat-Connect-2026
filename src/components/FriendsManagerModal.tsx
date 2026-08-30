@@ -28,6 +28,7 @@ import {
 import { Contact, User } from '../types';
 import { COUNTRIES } from '../data/mockData';
 import { supabaseSearchUsers, isSupabaseConfigured } from '../services/supabaseService';
+import { UserAvatar } from './UserAvatar';
 
 export interface FriendRequest {
   id: string;
@@ -465,10 +466,14 @@ export const FriendsManagerModal: React.FC<FriendsManagerModalProps> = ({
                           onClick={() => onOpenContactProfile(contact)}
                         >
                           <div className="relative shrink-0">
-                            <img
-                              src={contact.avatar}
-                              alt={contact.name}
-                              className="w-10 h-10 rounded-xl object-cover border border-emerald-500/50"
+                            <UserAvatar
+                              name={contact.name}
+                              username={contact.username}
+                              avatar={contact.avatar}
+                              flag={contact.flag}
+                              isVIP={contact.isVIP}
+                              size="md"
+                              className="w-10 h-10 rounded-xl border border-emerald-500/50"
                             />
                             <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 border-2 border-stone-900" />
                           </div>
@@ -574,10 +579,14 @@ export const FriendsManagerModal: React.FC<FriendsManagerModalProps> = ({
                           className="p-3.5 rounded-2xl bg-stone-950/70 border border-stone-800 hover:border-stone-700 transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
                         >
                           <div className="flex items-start space-x-3 min-w-0 flex-1">
-                            <img
-                              src={member.avatar}
-                              alt={member.name}
-                              className="w-11 h-11 rounded-2xl object-cover border border-amber-500/30 shrink-0"
+                            <UserAvatar
+                              name={member.name}
+                              username={member.username}
+                              avatar={member.avatar}
+                              flag={member.flag}
+                              isVIP={member.isVIP}
+                              size="lg"
+                              className="w-11 h-11 rounded-2xl border border-amber-500/30 shrink-0"
                             />
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center space-x-1.5 flex-wrap">
@@ -664,10 +673,13 @@ export const FriendsManagerModal: React.FC<FriendsManagerModalProps> = ({
                         className="p-3.5 rounded-2xl bg-stone-950/70 border border-amber-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
                       >
                         <div className="flex items-start space-x-3 min-w-0 flex-1">
-                          <img
-                            src={req.senderAvatar}
-                            alt={req.senderName}
-                            className="w-11 h-11 rounded-2xl object-cover border border-amber-400 shrink-0"
+                          <UserAvatar
+                            name={req.senderName}
+                            username={req.senderUsername}
+                            avatar={req.senderAvatar}
+                            flag={req.senderFlag}
+                            size="lg"
+                            className="w-11 h-11 rounded-2xl border border-amber-400 shrink-0"
                           />
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center space-x-1.5">
@@ -737,10 +749,14 @@ export const FriendsManagerModal: React.FC<FriendsManagerModalProps> = ({
                           onClick={() => onOpenContactProfile(contact)}
                         >
                           <div className="relative shrink-0">
-                            <img
-                              src={contact.avatar}
-                              alt={contact.name}
-                              className="w-10 h-10 rounded-xl object-cover border border-stone-700"
+                            <UserAvatar
+                              name={contact.name}
+                              username={contact.username}
+                              avatar={contact.avatar}
+                              flag={contact.flag}
+                              isVIP={contact.isVIP}
+                              size="md"
+                              className="w-10 h-10 rounded-xl border border-stone-700"
                             />
                             {contact.isOnline && (
                               <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-stone-900" />

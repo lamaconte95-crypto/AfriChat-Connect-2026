@@ -35,6 +35,7 @@ import {
   RolePermissionConfig 
 } from '../types';
 import { DEFAULT_ROLE_PERMISSIONS } from '../data/mockData';
+import { UserAvatar } from './UserAvatar';
 
 interface GroupRoleManagerModalProps {
   isOpen: boolean;
@@ -257,10 +258,13 @@ export const GroupRoleManagerModal: React.FC<GroupRoleManagerModalProps> = ({
           <div className="p-5 border-b border-stone-800 bg-stone-950/60 flex items-center justify-between">
             <div className="flex items-center space-x-3 min-w-0">
               <div className="relative shrink-0">
-                <img
-                  src={conversation.avatar}
-                  alt={conversation.name}
-                  className="w-12 h-12 rounded-2xl object-cover border border-amber-500/60"
+                <UserAvatar
+                  name={conversation.name}
+                  avatar={conversation.avatar}
+                  isVIP={conversation.isVIPRoom}
+                  type={conversation.isVIPRoom || conversation.isCommunity ? 'channel' : 'user'}
+                  size="lg"
+                  className="w-12 h-12 rounded-2xl border border-amber-500/60"
                 />
                 <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-amber-500 text-stone-950 flex items-center justify-center font-black">
                   {conversation.isVIPRoom ? <Crown className="w-3 h-3" /> : <Users className="w-3 h-3" />}
@@ -491,10 +495,11 @@ export const GroupRoleManagerModal: React.FC<GroupRoleManagerModalProps> = ({
                           {/* Member Info */}
                           <div className="flex items-center space-x-3 min-w-0">
                             <div className="relative shrink-0">
-                              <img
-                                src={member.avatar}
-                                alt={member.name}
-                                className="w-10 h-10 rounded-xl object-cover border border-stone-700"
+                              <UserAvatar
+                                name={member.name}
+                                avatar={member.avatar}
+                                size="md"
+                                className="w-10 h-10 rounded-xl border border-stone-700"
                               />
                               {member.isOnline && (
                                 <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-stone-900" />

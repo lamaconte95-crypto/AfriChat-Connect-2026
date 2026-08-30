@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { FounderInfo, User } from '../types';
 import { openSocialDeepLink, OFFICIAL_SOCIAL_LINKS } from '../utils/socialDeepLinks';
+import { UserAvatar } from './UserAvatar';
 
 interface FounderModalProps {
   isOpen: boolean;
@@ -237,10 +238,12 @@ export const FounderModal: React.FC<FounderModalProps> = ({
               <div className="space-y-4">
                 {/* Profile Card */}
                 <div className="p-4 rounded-3xl bg-stone-950/80 border border-stone-800 flex items-start space-x-4">
-                  <img
-                    src={founderInfo.avatar}
-                    alt={founderInfo.name}
-                    className="w-16 h-16 rounded-2xl object-cover border-2 border-amber-500 shadow-xl"
+                  <UserAvatar
+                    name={founderInfo.name}
+                    avatar={founderInfo.avatar}
+                    flag={founderInfo.countryFlag}
+                    size="xl"
+                    className="w-16 h-16 rounded-2xl border-2 border-amber-500 shadow-xl shrink-0"
                   />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center space-x-1.5">

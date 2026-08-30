@@ -33,6 +33,7 @@ import {
   AdminAuditLog, 
   SystemSettings 
 } from '../types';
+import { UserAvatar } from './UserAvatar';
 
 interface SuperAdminModalProps {
   isOpen: boolean;
@@ -513,10 +514,13 @@ export const SuperAdminModal: React.FC<SuperAdminModalProps> = ({
                           <div className="flex items-start justify-between">
                             <div className="flex items-center space-x-3 min-w-0">
                               <div className="relative shrink-0">
-                                <img
-                                  src={admin.avatar}
-                                  alt={admin.name}
-                                  className="w-11 h-11 rounded-2xl object-cover border border-stone-700"
+                                <UserAvatar
+                                  name={admin.name}
+                                  username={admin.username}
+                                  avatar={admin.avatar}
+                                  flag={admin.flag}
+                                  size="lg"
+                                  className="w-11 h-11 rounded-2xl border border-stone-700"
                                 />
                                 <span className="absolute -bottom-1 -right-1 text-sm">
                                   {admin.flag}

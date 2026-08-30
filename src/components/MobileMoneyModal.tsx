@@ -17,6 +17,7 @@ import {
 import confetti from 'canvas-confetti';
 import { PaymentProvider, Transaction } from '../types';
 import { MOBILE_MONEY_OPERATORS, COUNTRIES } from '../data/mockData';
+import { UserAvatar } from './UserAvatar';
 
 interface MobileMoneyModalProps {
   isOpen: boolean;
@@ -164,14 +165,15 @@ export const MobileMoneyModal: React.FC<MobileMoneyModalProps> = ({
                 {/* Item Summary Card */}
                 <div className="p-4 rounded-2xl bg-stone-800/80 border border-stone-700/60 flex items-center justify-between">
                   <div className="flex items-center space-x-3">
-                    {creatorAvatar ? (
-                      <img
-                        src={creatorAvatar}
-                        alt={creatorName || 'Creator'}
-                        className="w-12 h-12 rounded-full object-cover border-2 border-amber-500/50"
+                    {creatorAvatar || creatorName ? (
+                      <UserAvatar
+                        name={creatorName || 'Créateur'}
+                        avatar={creatorAvatar}
+                        size="lg"
+                        className="w-12 h-12 border-2 border-amber-500/50 shrink-0"
                       />
                     ) : (
-                      <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                      <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
                         <Lock className="w-6 h-6" />
                       </div>
                     )}

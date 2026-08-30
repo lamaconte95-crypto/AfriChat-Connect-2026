@@ -25,6 +25,7 @@ import {
 import { ChatConversation, User, Contact } from '../types';
 import { getAgoraAppId, isAgoraConfigured } from '../services/agoraService';
 import { InviteParticipantsModal } from './InviteParticipantsModal';
+import { UserAvatar } from './UserAvatar';
 
 interface CallModalProps {
   isOpen: boolean;
@@ -250,11 +251,12 @@ export const CallModal: React.FC<CallModalProps> = ({
             /* VIDEO CALL VIEW */
             <div className="relative flex-1 w-full h-full overflow-hidden flex items-center justify-center">
               {/* Simulated Remote Video Feed (HD contact visual with high aesthetic filter) */}
-              <div className="absolute inset-0 w-full h-full">
-                <img
-                  src={conversation.avatar}
-                  alt={conversation.name}
-                  className="w-full h-full object-cover filter brightness-[0.75] contrast-105 scale-105"
+              <div className="absolute inset-0 w-full h-full flex items-center justify-center bg-stone-950">
+                <UserAvatar
+                  name={conversation.name}
+                  avatar={conversation.avatar}
+                  size="huge"
+                  className="w-full h-full rounded-none filter brightness-[0.75] contrast-105"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-stone-950 via-transparent to-stone-950/60" />
               </div>
@@ -286,10 +288,13 @@ export const CallModal: React.FC<CallModalProps> = ({
                   />
                 ) : (
                   <div className="w-full h-full flex flex-col items-center justify-center bg-stone-900 p-2 text-center">
-                    <img
-                      src={currentUser.avatar}
-                      alt={currentUser.name}
-                      className="w-12 h-12 rounded-full object-cover border border-amber-400 mb-1"
+                    <UserAvatar
+                      name={currentUser.name}
+                      username={currentUser.username}
+                      avatar={currentUser.avatar}
+                      flag={currentUser.flag}
+                      size="md"
+                      className="w-12 h-12 border border-amber-400 mb-1"
                     />
                     <span className="text-[10px] text-stone-300 font-bold">{currentUser.name.split(' ')[0]} (Moi)</span>
                     {!isVideoEnabled && (
@@ -322,11 +327,14 @@ export const CallModal: React.FC<CallModalProps> = ({
                   </>
                 )}
 
-                <div className="relative w-36 h-36 rounded-full p-1 bg-gradient-to-tr from-amber-500 via-orange-500 to-amber-600 shadow-2xl">
-                  <img
-                    src={conversation.avatar}
-                    alt={conversation.name}
-                    className="w-full h-full rounded-full object-cover border-4 border-stone-950"
+                <div className="relative w-36 h-36 rounded-full p-1 bg-gradient-to-tr from-amber-500 via-orange-500 to-amber-600 shadow-2xl flex items-center justify-center">
+                  <UserAvatar
+                    name={conversation.name}
+                    avatar={conversation.avatar}
+                    isVIP={conversation.isVIPRoom}
+                    type={conversation.isVIPRoom || conversation.isCommunity ? 'channel' : 'user'}
+                    size="huge"
+                    className="w-full h-full border-4 border-stone-950"
                   />
                   {conversation.isVIPRoom && (
                     <div className="absolute bottom-1 right-1 w-8 h-8 rounded-full bg-gradient-to-tr from-amber-500 to-orange-500 text-stone-950 flex items-center justify-center font-black shadow-lg">

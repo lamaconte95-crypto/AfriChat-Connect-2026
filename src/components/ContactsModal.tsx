@@ -27,6 +27,7 @@ import {
 import { Contact, User } from '../types';
 import { COUNTRIES } from '../data/mockData';
 import { supabaseSearchUsers } from '../services/supabaseService';
+import { UserAvatar } from './UserAvatar';
 
 interface ContactsModalProps {
   isOpen: boolean;
@@ -474,10 +475,14 @@ export const ContactsModal: React.FC<ContactsModalProps> = ({
                           className="flex items-center space-x-3 min-w-0 flex-1 cursor-pointer"
                         >
                           <div className="relative shrink-0">
-                            <img
-                              src={contact.avatar}
-                              alt={contact.name}
-                              className={`w-11 h-11 rounded-2xl object-cover border ${
+                            <UserAvatar
+                              name={contact.name}
+                              username={contact.username}
+                              avatar={contact.avatar}
+                              flag={contact.flag}
+                              isVIP={contact.isVIP}
+                              size="lg"
+                              className={`w-11 h-11 rounded-2xl ${
                                 contact.isBlocked ? 'border-rose-600 grayscale' : 'border-stone-700'
                               }`}
                             />

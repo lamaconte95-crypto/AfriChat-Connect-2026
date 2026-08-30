@@ -387,10 +387,14 @@ export const MessagesView: React.FC<MessagesViewProps> = ({
                       className="flex items-center space-x-2.5 min-w-0 flex-1 cursor-pointer"
                     >
                       <div className="relative shrink-0">
-                        <img
-                          src={contact.avatar}
-                          alt={contact.name}
-                          className="w-10 h-10 rounded-xl object-cover border border-stone-700"
+                        <UserAvatar
+                          name={contact.name}
+                          username={contact.username}
+                          avatar={contact.avatar}
+                          flag={contact.flag}
+                          isVIP={contact.isVIP}
+                          size="md"
+                          className="w-10 h-10 rounded-xl"
                         />
                         {!contact.isBlocked && (
                           <span
@@ -457,12 +461,13 @@ export const MessagesView: React.FC<MessagesViewProps> = ({
                       }`}
                     >
                       <div className="relative shrink-0">
-                        <img
-                          src={conv.avatar}
-                          alt={conv.name}
-                          className={`w-12 h-12 rounded-2xl object-cover border ${
-                            conv.isVIPRoom ? 'border-amber-500/70 p-0.5' : 'border-stone-700'
-                          }`}
+                        <UserAvatar
+                          name={conv.name}
+                          avatar={conv.avatar}
+                          isVIP={conv.isVIPRoom}
+                          type={conv.isVIPRoom || conv.isCommunity ? 'channel' : 'user'}
+                          size="lg"
+                          className="w-12 h-12 rounded-2xl"
                         />
                         {conv.isVIPRoom && (
                           <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-gradient-to-tr from-amber-500 to-orange-500 text-stone-950 flex items-center justify-center shadow">
@@ -527,14 +532,15 @@ export const MessagesView: React.FC<MessagesViewProps> = ({
                 }}
                 className="relative cursor-pointer group"
               >
-                <img
-                  src={activeChat.avatar}
-                  alt={activeChat.name}
-                  className={`w-10 h-10 rounded-2xl object-cover border ${
-                    isContactBlocked 
-                      ? 'border-rose-600 grayscale' 
-                      : 'border-amber-500/50 group-hover:border-amber-400'
-                  } transition-colors`}
+                <UserAvatar
+                  name={activeChat.name}
+                  avatar={activeChat.avatar}
+                  isVIP={activeChat.isVIPRoom}
+                  type={activeChat.isVIPRoom || activeChat.isCommunity ? 'channel' : 'user'}
+                  size="md"
+                  className={`w-10 h-10 rounded-2xl ${
+                    isContactBlocked ? 'border-rose-600 grayscale' : 'border-amber-500/50 group-hover:border-amber-400'
+                  }`}
                 />
                 {activeChat.isVIPRoom && (
                   <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-amber-500 text-stone-950 flex items-center justify-center">

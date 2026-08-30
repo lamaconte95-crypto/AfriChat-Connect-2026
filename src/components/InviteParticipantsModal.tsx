@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { User, Contact } from '../types';
 import { supabaseSearchUsers, supabaseSendInviteNotification } from '../services/supabaseService';
+import { UserAvatar } from './UserAvatar';
 
 export interface InviteTargetInfo {
   type: 'live' | 'call';
@@ -355,10 +356,15 @@ export const InviteParticipantsModal: React.FC<InviteParticipantsModalProps> = (
                   >
                     <div className="flex items-center space-x-3 min-w-0">
                       <div className="relative">
-                        <img
-                          src={contact.avatar}
-                          alt={contact.name}
-                          className="w-10 h-10 rounded-full object-cover border border-stone-800"
+                        <UserAvatar
+                          name={contact.name}
+                          username={contact.username}
+                          avatar={contact.avatar}
+                          flag={contact.flag}
+                          isVIP={contact.isVIP}
+                          isVerified={contact.isVerified}
+                          size="md"
+                          className="w-10 h-10 border border-stone-800"
                         />
                         {contact.isOnline && (
                           <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-stone-950 shadow" />

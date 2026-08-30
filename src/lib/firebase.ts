@@ -28,6 +28,9 @@ import {
   serverTimestamp,
   getDocFromServer,
   Unsubscribe,
+  arrayUnion,
+  arrayRemove,
+  deleteDoc,
 } from 'firebase/firestore';
 import { User, Message, ChatConversation } from '../types';
 import { COUNTRIES } from '../data/mockData';
@@ -190,6 +193,92 @@ export function subscribeToAllRegisteredUsers(
       console.warn('Subscription to registered users error:', err);
     }
   );
+}
+
+/**
+ * Save or remove friend relationship in Firestore for a user
+ */
+export async function saveUserFriendInFirestore(
+  userId: string,
+  friendId: string,
+  isFriend: boolean
+): Promise<void> {
+  try {
+    if (!userId || !friendId) return;
+    const userDocRef = doc(db, 'users', userId);
+    await updateDoc(userDocRef, {
+      friendIds: isFriend ? arrayUnion(friendId) : arrayRemove(friendId),
+      updatedAt: serverTimestamp(),
+    }).catch(async () => {
+      await setDoc(
+        userDocRef,
+        {
+          friendIds: isFriend ? [friendId] : [],
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+    });
+
+    // Also persist in subcollection for granular query/rules
+    const friendDocRef = doc(db, 'users', userId, 'friends', friendId);
+    if (isFriend) {
+      await setDoc(friendDocRef, {
+        friendId,
+        isFriend: true,
+        updatedAt: serverTimestamp(),
+      });
+    } else {
+      await deleteDoc(friendDocRef).catch(() => {});
+    }
+  } catch (error) {
+    console.warn('Could not save friend relation in Firestore:', error);
+  }
+}
+
+/**
+ * Real-time listener for current user's friend IDs from Firestore
+ */
+export function subscribeToUserFriends(
+  userId: string,
+  onUpdate: (friendIds: string[]) => void
+): Unsubscribe {
+  if (!userId) {
+    return () => {};
+  }
+  const userDocRef = doc(db, 'users', userId);
+  return onSnapshot(
+    userDocRef,
+    (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        const friendIds: string[] = Array.isArray(data?.friendIds) ? data.friendIds : [];
+        onUpdate(friendIds);
+      }
+    },
+    (err) => {
+      console.warn('Subscription to user friends error:', err);
+    }
+  );
+}
+
+/**
+ * Fetch friend IDs for a user from Firestore
+ */
+export async function getUserFriendsFromFirestore(userId: string): Promise<string[]> {
+  try {
+    if (!userId) return [];
+    const userDocRef = doc(db, 'users', userId);
+    const snap = await getDoc(userDocRef);
+    if (snap.exists()) {
+      const data = snap.data();
+      return Array.isArray(data?.friendIds) ? data.friendIds : [];
+    }
+    return [];
+  } catch (error) {
+    console.warn('Could not fetch friends from Firestore:', error);
+    return [];
+  }
 }
 
 /**

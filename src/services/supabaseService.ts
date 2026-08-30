@@ -484,6 +484,90 @@ export const supabaseUpdateProfile = async (userId: string, updates: Partial<Use
   }
 };
 
+export const supabaseSaveFriendship = async (userId: string, friendId: string, isFriend: boolean) => {
+  const client = getSupabaseClient();
+  if (!client || !userId || !friendId) return { success: true, simulated: true };
+  try {
+    if (isFriend) {
+      await client.from('friendships').upsert({
+        user_id: userId,
+        friend_id: friendId,
+        status: 'accepted',
+        updated_at: new Date().toISOString(),
+      });
+      // Also record reverse if symmetric
+      try {
+        await client.from('friends').upsert({
+          user_id: userId,
+          friend_id: friendId,
+          is_friend: true,
+          updated_at: new Date().toISOString(),
+        });
+      } catch (e) {}
+    } else {
+      await client.from('friendships').delete().match({ user_id: userId, friend_id: friendId });
+      try {
+        await client.from('friends').delete().match({ user_id: userId, friend_id: friendId });
+      } catch (e) {}
+    }
+    return { success: true, simulated: false };
+  } catch (err) {
+    console.warn('Supabase friendship update warning:', err);
+    return { success: false, error: err, simulated: false };
+  }
+};
+
+export const supabaseFetchFriendships = async (userId: string): Promise<string[]> => {
+  const client = getSupabaseClient();
+  if (!client || !userId) return [];
+  try {
+    const { data } = await client
+      .from('friendships')
+      .select('friend_id')
+      .eq('user_id', userId)
+      .eq('status', 'accepted');
+    if (data && data.length > 0) {
+      return data.map((d: any) => d.friend_id);
+    }
+    return [];
+  } catch (e) {
+    return [];
+  }
+};
+
+export const supabaseSubscribeFriendships = (
+  userId: string,
+  onUpdate: (friendIds: string[]) => void
+) => {
+  const client = getSupabaseClient();
+  if (!client || !userId) return () => {};
+
+  try {
+    const channel = client
+      .channel(`user-friends-${userId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'friendships',
+          filter: `user_id=eq.${userId}`,
+        },
+        async () => {
+          const freshFriends = await supabaseFetchFriendships(userId);
+          onUpdate(freshFriends);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      client.removeChannel(channel);
+    };
+  } catch (e) {
+    return () => {};
+  }
+};
+
 // ==========================================
 // 2. STORAGE: AVATARS, POSTS MULTIMEDIA & STORIES
 // ==========================================
@@ -747,7 +831,12 @@ export const supabaseUploadAvatar = async (
 
     return { url, error: null, simulated: false };
   } catch (err) {
-    console.error('Avatar upload to Supabase storage failed:', err);
+    console.warn('Avatar storage upload notice (falling back to data URL sync):', err);
+    // Fallback: If caller provided a string data URL, persist that directly into the DB
+    if (typeof fileOrBase64 === 'string' && fileOrBase64.startsWith('data:')) {
+      await supabaseUpdateProfile(userId, { avatar: fileOrBase64 });
+      return { url: fileOrBase64, error: null, simulated: false };
+    }
     return { url: null, error: err, simulated: false };
   }
 };

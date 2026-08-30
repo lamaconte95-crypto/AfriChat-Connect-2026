@@ -13,6 +13,7 @@ import {
   Users
 } from 'lucide-react';
 import { Contact, ReportTicket, User } from '../types';
+import { UserAvatar } from './UserAvatar';
 
 interface ReportModalProps {
   isOpen: boolean;
@@ -192,10 +193,13 @@ export const ReportModal: React.FC<ReportModalProps> = ({
               <form onSubmit={handleSubmit} className="space-y-5">
                 {/* Contact Preview Bar */}
                 <div className="p-3 rounded-2xl bg-stone-950 border border-stone-800 flex items-center space-x-3">
-                  <img
-                    src={targetContact.avatar}
-                    alt={targetContact.name}
-                    className="w-11 h-11 rounded-xl object-cover border border-stone-700"
+                  <UserAvatar
+                    name={targetContact.name}
+                    username={targetContact.username}
+                    avatar={targetContact.avatar}
+                    flag={targetContact.flag}
+                    size="lg"
+                    className="w-11 h-11 rounded-xl border border-stone-700 shrink-0"
                   />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center space-x-1.5">

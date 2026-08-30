@@ -105,7 +105,10 @@ import {
   testFirestoreConnection,
   subscribeToUserProfile,
   getAllRegisteredUsersFromFirestore,
-  subscribeToAllRegisteredUsers
+  subscribeToAllRegisteredUsers,
+  saveUserFriendInFirestore,
+  subscribeToUserFriends,
+  getUserFriendsFromFirestore
 } from './lib/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { 
@@ -131,7 +134,10 @@ import {
   supabaseFetchStories,
   supabaseSubscribeStories,
   supabaseCreateStory,
-  supabaseFetchUserProfile
+  supabaseFetchUserProfile,
+  supabaseSaveFriendship,
+  supabaseFetchFriendships,
+  supabaseSubscribeFriendships
 } from './services/supabaseService';
 import { dispatchSocialWebhook, getWebhookConfig } from './services/webhookService';
 
@@ -285,6 +291,58 @@ export default function App() {
         });
       }
     });
+  }, [currentUser.id]);
+
+  // Synchronize current user's friend list from Firestore & Supabase across all devices (phones & computers)
+  useEffect(() => {
+    if (!currentUser.id) return;
+
+    // 1. Realtime listener from Firestore
+    const unsubscribeFirestoreFriends = subscribeToUserFriends(currentUser.id, (friendIds) => {
+      if (friendIds) {
+        setContacts((prev) =>
+          prev.map((c) => ({
+            ...c,
+            isFriend: friendIds.includes(c.id) || (c.userId ? friendIds.includes(c.userId) : false),
+          }))
+        );
+      }
+    });
+
+    // 2. Realtime listener from Supabase
+    const unsubscribeSupabaseFriends = supabaseSubscribeFriendships(currentUser.id, (friendIds) => {
+      if (friendIds) {
+        setContacts((prev) =>
+          prev.map((c) => ({
+            ...c,
+            isFriend: friendIds.includes(c.id) || (c.userId ? friendIds.includes(c.userId) : false),
+          }))
+        );
+      }
+    });
+
+    // Initial fetch from Supabase & Firestore
+    Promise.allSettled([
+      supabaseFetchFriendships(currentUser.id),
+      getUserFriendsFromFirestore(currentUser.id),
+    ]).then(([supaRes, fbRes]) => {
+      const supaIds = supaRes.status === 'fulfilled' ? supaRes.value || [] : [];
+      const fbIds = fbRes.status === 'fulfilled' ? fbRes.value || [] : [];
+      const allFriendIds = Array.from(new Set([...supaIds, ...fbIds]));
+      if (allFriendIds.length > 0) {
+        setContacts((prev) =>
+          prev.map((c) => ({
+            ...c,
+            isFriend: allFriendIds.includes(c.id) || (c.userId ? allFriendIds.includes(c.userId) : false),
+          }))
+        );
+      }
+    });
+
+    return () => {
+      unsubscribeFirestoreFriends();
+      unsubscribeSupabaseFriends();
+    };
   }, [currentUser.id]);
 
   const handleAuthSuccess = (user: User) => {
@@ -1404,24 +1462,35 @@ export default function App() {
   };
 
   // Contacts Handlers
-  const handleToggleFriend = (contactId: string) => {
+  const handleToggleFriend = async (contactId: string) => {
+    const targetContact = contacts.find((c) => c.id === contactId || c.userId === contactId);
+    const targetId = targetContact?.userId || targetContact?.id || contactId;
+    const currentIsFriend = targetContact ? targetContact.isFriend : false;
+    const newStatus = !currentIsFriend;
+
     setContacts((prev) =>
       prev.map((c) => {
-        if (c.id === contactId) {
-          const newStatus = !c.isFriend;
-          triggerSecurityToast(
-            newStatus ? `${c.name} a été ajouté(e) à vos amis ! 👥` : `${c.name} a été retiré(e) de vos amis.`,
-            'info'
-          );
+        if (c.id === contactId || c.userId === contactId) {
           return { ...c, isFriend: newStatus };
         }
         return c;
       })
     );
 
-    if (selectedContact && selectedContact.id === contactId) {
-      setSelectedContact((prev) => (prev ? { ...prev, isFriend: !prev.isFriend } : null));
+    if (selectedContact && (selectedContact.id === contactId || selectedContact.userId === contactId)) {
+      setSelectedContact((prev) => (prev ? { ...prev, isFriend: newStatus } : null));
     }
+
+    triggerSecurityToast(
+      newStatus
+        ? `${targetContact?.name || 'Le contact'} a été ajouté(e) à vos amis ! 👥`
+        : `${targetContact?.name || 'Le contact'} a été retiré(e) de vos amis.`,
+      'info'
+    );
+
+    // Save to Cloud Firestore & Supabase database
+    await saveUserFriendInFirestore(currentUser.id, targetId, newStatus);
+    await supabaseSaveFriendship(currentUser.id, targetId, newStatus);
   };
 
   const handleToggleBlock = async (contactIdOrUserId: string) => {

@@ -252,6 +252,7 @@ export interface ChatConversation {
   hostFlag?: string;
   category?: string;
   isOnline?: boolean;
+  isCommunity?: boolean;
   messages: Message[];
 }
 

@@ -89,9 +89,43 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
     const reader = new FileReader();
     reader.onload = (event) => {
-      if (event.target?.result && onUpdateAvatar) {
-        onUpdateAvatar(event.target.result as string);
-      }
+      const rawDataUrl = event.target?.result as string;
+      if (!rawDataUrl) return;
+
+      // Compress avatar with canvas to ensure instant cross-device synchronization (<60KB)
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_DIM = 400;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_DIM) {
+            height = Math.round((height * MAX_DIM) / width);
+            width = MAX_DIM;
+          }
+        } else {
+          if (height > MAX_DIM) {
+            width = Math.round((width * MAX_DIM) / height);
+            height = MAX_DIM;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+          if (onUpdateAvatar) {
+            onUpdateAvatar(compressedDataUrl);
+          }
+        } else if (onUpdateAvatar) {
+          onUpdateAvatar(rawDataUrl);
+        }
+      };
+      img.src = rawDataUrl;
     };
     reader.readAsDataURL(file);
   };

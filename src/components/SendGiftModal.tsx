@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { User, VirtualGift } from '../types';
 import { INITIAL_VIRTUAL_GIFTS } from '../data/mockData';
+import { UserAvatar } from './UserAvatar';
 
 interface SendGiftModalProps {
   isOpen: boolean;
@@ -118,10 +119,12 @@ export const SendGiftModal: React.FC<SendGiftModalProps> = ({
               {/* Recipient Card */}
               <div className="p-3 rounded-2xl bg-stone-950/80 border border-stone-800 flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                  <img
-                    src={recipientAvatar}
-                    alt={recipientName}
-                    className="w-11 h-11 rounded-2xl object-cover border border-amber-500"
+                  <UserAvatar
+                    name={recipientName}
+                    avatar={recipientAvatar}
+                    flag={recipientFlag}
+                    size="lg"
+                    className="w-11 h-11 rounded-2xl border border-amber-500 shrink-0"
                   />
                   <div>
                     <div className="flex items-center space-x-1.5">

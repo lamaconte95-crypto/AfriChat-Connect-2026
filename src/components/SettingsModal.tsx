@@ -166,6 +166,53 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [customAvatarInput, setCustomAvatarInput] = useState('');
   const [isVIP, setIsVIP] = useState(currentUser.isVIP);
   const [currency, setCurrency] = useState(currentUser.currency || 'FCFA');
+  const avatarInputRef = React.useRef<HTMLInputElement | null>(null);
+
+  const handleAvatarFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const rawDataUrl = event.target?.result as string;
+      if (!rawDataUrl) return;
+
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_DIM = 400;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_DIM) {
+            height = Math.round((height * MAX_DIM) / width);
+            width = MAX_DIM;
+          }
+        } else {
+          if (height > MAX_DIM) {
+            width = Math.round((width * MAX_DIM) / height);
+            height = MAX_DIM;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressed = canvas.toDataURL('image/jpeg', 0.85);
+          setSelectedAvatar(compressed);
+          setCustomAvatarInput(compressed);
+        } else {
+          setSelectedAvatar(rawDataUrl);
+          setCustomAvatarInput(rawDataUrl);
+        }
+      };
+      img.src = rawDataUrl;
+    };
+    reader.readAsDataURL(file);
+  };
 
   // VIP & Stripe state in Settings
   const [selectedVipPlan, setSelectedVipPlan] = useState<StripeVipPlan>(STRIPE_VIP_PLANS[1]);
@@ -470,10 +517,28 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
                 {/* Avatar Presets Selection */}
                 <div>
+                  <input
+                    type="file"
+                    ref={avatarInputRef}
+                    accept="image/*"
+                    onChange={handleAvatarFile}
+                    className="hidden"
+                    id="settings-avatar-file-input"
+                  />
+
                   <label className="block text-xs font-bold text-stone-300 mb-2">
-                    Style d'avatar & Initiales neutres
+                    Photo de profil & Avatar (Téléphone & Ordinateur)
                   </label>
                   <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => avatarInputRef.current?.click()}
+                      className="px-3.5 py-2 rounded-xl text-xs font-bold flex items-center space-x-2 border border-emerald-500/50 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 transition-all cursor-pointer shadow-sm"
+                    >
+                      <Camera size={14} className="text-emerald-400" />
+                      <span>📸 Choisir une photo depuis mon appareil</span>
+                    </button>
+
                     <button
                       type="button"
                       onClick={() => {
@@ -494,13 +559,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   {/* Or Custom Image URL */}
                   <div className="mt-2.5">
                     <label className="block text-[11px] text-stone-400 mb-1">
-                      URL de photo personnelle (optionnelle)
+                      Ou coller une URL d'image directe
                     </label>
                     <input
                       type="url"
-                      placeholder="https://votre-domaine.com/photo.jpg"
+                      placeholder="https://votre-domaine.com/photo.jpg ou data:image/..."
                       value={customAvatarInput}
-                      onChange={(e) => setCustomAvatarInput(e.target.value)}
+                      onChange={(e) => {
+                        setCustomAvatarInput(e.target.value);
+                        setSelectedAvatar(e.target.value);
+                      }}
                       className="w-full px-3.5 py-2 rounded-xl bg-stone-800 border border-stone-700 text-xs text-stone-100 placeholder:text-stone-500 focus:outline-none focus:border-amber-500"
                     />
                   </div>
@@ -1374,11 +1442,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         }}
                         className="p-2.5 rounded-xl bg-stone-900 hover:bg-stone-850 border border-stone-800 hover:border-amber-500/40 text-left transition-all flex items-center space-x-2.5 cursor-pointer group"
                       >
-                        <img
-                          src={ad.sponsorLogo}
-                          alt={ad.sponsorName}
-                          className="w-8 h-8 rounded-lg object-cover border border-stone-700 group-hover:border-amber-500 shrink-0"
-                        />
+                        {ad.sponsorLogo ? (
+                          <img
+                            src={ad.sponsorLogo}
+                            alt={ad.sponsorName}
+                            className="w-8 h-8 rounded-lg object-cover border border-stone-700 group-hover:border-amber-500 shrink-0"
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 border border-stone-700 flex items-center justify-center font-bold text-xs shrink-0">
+                            {ad.sponsorName?.charAt(0) || 'A'}
+                          </div>
+                        )}
                         <div className="min-w-0 flex-1">
                           <div className="text-xs font-bold text-stone-200 truncate group-hover:text-amber-400">
                             {ad.sponsorName}
@@ -1542,10 +1616,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                             className="flex items-center space-x-3 min-w-0 flex-1 cursor-pointer group"
                           >
                             <div className="relative shrink-0">
-                              <img
-                                src={contact.avatar}
-                                alt={contact.name}
-                                className="w-11 h-11 rounded-2xl object-cover border-2 border-rose-700/80 grayscale contrast-125 group-hover:border-amber-400 transition-all"
+                              <UserAvatar
+                                name={contact.name}
+                                username={contact.username}
+                                avatar={contact.avatar}
+                                flag={contact.flag}
+                                isVIP={contact.isVIP}
+                                size="lg"
+                                className="w-11 h-11 rounded-2xl border-2 border-rose-700/80 grayscale contrast-125 group-hover:border-amber-400 transition-all"
                               />
                               <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-rose-600 text-white flex items-center justify-center shadow-md">
                                 <Lock className="w-2.5 h-2.5" />

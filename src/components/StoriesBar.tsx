@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Plus, X, Heart, Send, Lock, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Story, User } from '../types';
+import { UserAvatar } from './UserAvatar';
 
 interface StoriesBarProps {
   stories: Story[];
@@ -29,10 +30,13 @@ export const StoriesBar: React.FC<StoriesBarProps> = ({
           title="Ajouter ou publier un nouveau statut / Story"
         >
           <div className="relative">
-            <img
-              src={currentUser.avatar}
-              alt={currentUser.name}
-              className="w-16 h-16 rounded-full object-cover p-0.5 border-2 border-dashed border-amber-500/80 group-hover:border-amber-400 group-hover:scale-105 transition-all shadow-md"
+            <UserAvatar
+              name={currentUser.name}
+              username={currentUser.username}
+              avatar={currentUser.avatar}
+              flag={currentUser.flag}
+              size="xl"
+              className="w-16 h-16 p-0.5 border-2 border-dashed border-amber-500/80 group-hover:border-amber-400 group-hover:scale-105 transition-all shadow-md"
             />
             <div className="absolute bottom-0 right-0 w-5 h-5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-stone-950 flex items-center justify-center shadow-lg border-2 border-stone-900 group-hover:scale-110 transition-transform">
               <Plus className="w-3.5 h-3.5 stroke-[3]" />
@@ -61,10 +65,12 @@ export const StoriesBar: React.FC<StoriesBarProps> = ({
                     : 'bg-stone-700'
                 }`}
               >
-                <img
-                  src={story.userAvatar}
-                  alt={story.userName}
-                  className="w-15 h-15 rounded-full object-cover border-2 border-stone-900 group-hover:scale-105 transition-transform"
+                <UserAvatar
+                  name={story.userName}
+                  avatar={story.userAvatar}
+                  flag={story.userFlag}
+                  size="lg"
+                  className="w-15 h-15 border-2 border-stone-900 group-hover:scale-105 transition-transform"
                 />
               </div>
 
@@ -158,10 +164,12 @@ export const StoryViewerModal: React.FC<StoryViewerModalProps> = ({
             {/* Author info */}
             <div className="flex items-center justify-between text-white">
               <div className="flex items-center space-x-3">
-                <img
-                  src={story.userAvatar}
-                  alt={story.userName}
-                  className="w-10 h-10 rounded-full object-cover border-2 border-amber-500"
+                <UserAvatar
+                  name={story.userName}
+                  avatar={story.userAvatar}
+                  flag={story.userFlag}
+                  size="md"
+                  className="w-10 h-10 border-2 border-amber-500"
                 />
                 <div>
                   <div className="flex items-center space-x-1.5">

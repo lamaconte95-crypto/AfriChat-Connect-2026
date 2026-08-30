@@ -20,6 +20,7 @@ import {
   Send
 } from 'lucide-react';
 import { Contact, User, PaymentProvider, Transaction } from '../types';
+import { UserAvatar } from './UserAvatar';
 
 interface VipStarAccessModalProps {
   isOpen: boolean;
@@ -145,10 +146,14 @@ export const VipStarAccessModal: React.FC<VipStarAccessModalProps> = ({
 
             {/* Star Profile Pill */}
             <div className="mt-4 flex items-center space-x-3 p-2.5 rounded-2xl bg-black/30 backdrop-blur-md border border-white/20 text-white">
-              <img
-                src={star.avatar}
-                alt={star.name}
-                className="w-12 h-12 rounded-xl object-cover border-2 border-amber-400 shadow-md"
+              <UserAvatar
+                name={star.name}
+                username={star.username}
+                avatar={star.avatar}
+                flag={star.flag}
+                isVIP={star.isVIP}
+                size="lg"
+                className="w-12 h-12 rounded-xl border-2 border-amber-400 shadow-md shrink-0"
               />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center space-x-1.5">
