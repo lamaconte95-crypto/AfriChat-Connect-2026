@@ -125,6 +125,14 @@ export const FeedVideoPlayer: React.FC<FeedVideoPlayerProps> = ({
     }, 2800);
   };
 
+  if (!src || !src.trim()) {
+    return (
+      <div className="relative w-full aspect-video bg-black/90 flex items-center justify-center text-stone-500 text-xs">
+        <span>Vidéo non disponible</span>
+      </div>
+    );
+  }
+
   return (
     <div
       ref={containerRef}
@@ -134,8 +142,8 @@ export const FeedVideoPlayer: React.FC<FeedVideoPlayerProps> = ({
     >
       <video
         ref={videoRef}
-        src={src}
-        poster={poster}
+        src={src.trim()}
+        poster={poster && poster.trim() ? poster.trim() : undefined}
         playsInline
         className="w-full h-full object-cover cursor-pointer"
         onClick={togglePlay}

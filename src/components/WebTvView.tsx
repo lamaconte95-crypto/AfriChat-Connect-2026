@@ -413,10 +413,10 @@ export const WebTvView: React.FC<WebTvViewProps> = ({
             {/* Universal Video Screen (YouTube / Facebook / Native HTML5 Video) */}
             <div className="relative aspect-video w-full bg-stone-950 flex items-center justify-center overflow-hidden">
               {/* A. YouTube Live Embed */}
-              {streamInfo.provider === 'youtube' && (
+              {streamInfo.provider === 'youtube' && streamInfo.embedUrl && streamInfo.embedUrl.trim() && (
                 <iframe
                   key={activeChannel.id}
-                  src={streamInfo.embedUrl}
+                  src={streamInfo.embedUrl.trim()}
                   title={activeChannel.title}
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                   allowFullScreen
@@ -425,10 +425,10 @@ export const WebTvView: React.FC<WebTvViewProps> = ({
               )}
 
               {/* B. Facebook Live Embed */}
-              {streamInfo.provider === 'facebook' && (
+              {streamInfo.provider === 'facebook' && streamInfo.embedUrl && streamInfo.embedUrl.trim() && (
                 <iframe
                   key={activeChannel.id}
-                  src={streamInfo.embedUrl}
+                  src={streamInfo.embedUrl.trim()}
                   title={activeChannel.title}
                   allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
                   allowFullScreen
@@ -437,11 +437,11 @@ export const WebTvView: React.FC<WebTvViewProps> = ({
               )}
 
               {/* C. Direct HTML5 / MP4 / HLS Video */}
-              {streamInfo.provider === 'native' && (
+              {streamInfo.provider === 'native' && activeChannel.videoUrl && activeChannel.videoUrl.trim() && (
                 <video
                   ref={videoRef}
-                  src={activeChannel.videoUrl}
-                  poster={activeChannel.thumbnailUrl}
+                  src={activeChannel.videoUrl.trim()}
+                  poster={activeChannel.thumbnailUrl && activeChannel.thumbnailUrl.trim() ? activeChannel.thumbnailUrl.trim() : undefined}
                   autoPlay
                   loop
                   muted={isMuted}
@@ -701,9 +701,9 @@ export const WebTvView: React.FC<WebTvViewProps> = ({
               >
                 {/* Thumbnail & Badges */}
                 <div className="relative aspect-video w-full overflow-hidden bg-stone-950 flex items-center justify-center">
-                  {channel.thumbnailUrl ? (
+                  {channel.thumbnailUrl && channel.thumbnailUrl.trim() ? (
                     <img
-                      src={channel.thumbnailUrl}
+                      src={channel.thumbnailUrl.trim()}
                       alt={channel.title}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />

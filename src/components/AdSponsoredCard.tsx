@@ -58,11 +58,17 @@ export const AdSponsoredCard: React.FC<AdSponsoredCardProps> = ({
       <div className="p-4 flex items-center justify-between">
         <div className="flex items-center space-x-3">
           <div className="relative">
-            <img
-              src={ad.sponsorLogo}
-              alt={ad.sponsorName}
-              className="w-11 h-11 rounded-2xl object-cover border-2 border-amber-500/60 shadow"
-            />
+            {ad.sponsorLogo && ad.sponsorLogo.trim() ? (
+              <img
+                src={ad.sponsorLogo.trim()}
+                alt={ad.sponsorName}
+                className="w-11 h-11 rounded-2xl object-cover border-2 border-amber-500/60 shadow"
+              />
+            ) : (
+              <div className="w-11 h-11 rounded-2xl border-2 border-amber-500/60 shadow bg-stone-800 flex items-center justify-center font-bold text-amber-400">
+                {ad.sponsorName?.charAt(0) || 'A'}
+              </div>
+            )}
             <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-amber-500 text-stone-950 flex items-center justify-center font-bold text-[8px] shadow">
               <Sparkles className="w-2.5 h-2.5" />
             </div>
@@ -106,13 +112,13 @@ export const AdSponsoredCard: React.FC<AdSponsoredCardProps> = ({
       </div>
 
       {/* Media Image */}
-      {ad.imageUrl && (
+      {ad.imageUrl && ad.imageUrl.trim() && (
         <div 
           onClick={() => onOpenAdDetail(ad)}
           className="relative w-full aspect-video bg-stone-950 overflow-hidden cursor-pointer group/img"
         >
           <img
-            src={ad.imageUrl}
+            src={ad.imageUrl.trim()}
             alt={ad.title}
             className="w-full h-full object-cover group-hover/img:scale-[1.02] transition-transform duration-300"
           />

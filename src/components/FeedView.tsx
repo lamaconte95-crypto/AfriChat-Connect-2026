@@ -746,9 +746,9 @@ export const FeedView: React.FC<FeedViewProps> = ({
                   {/* Media Container (Image or Video or VIP Lock Screen) */}
                   {isVipLocked ? (
                     <div className="relative aspect-video sm:aspect-[16/10] w-full bg-stone-950 overflow-hidden flex items-center justify-center p-6 border-y border-stone-800">
-                      {post.mediaUrl && (
+                      {post.mediaUrl && post.mediaUrl.trim() && (
                         <img
-                          src={post.mediaUrl}
+                          src={post.mediaUrl.trim()}
                           alt="Contenu VIP"
                           className="absolute inset-0 w-full h-full object-cover filter blur-xl opacity-30 scale-110"
                         />
@@ -781,20 +781,20 @@ export const FeedView: React.FC<FeedViewProps> = ({
                         </div>
                       </div>
                     </div>
-                  ) : post.mediaType === 'video' && post.mediaUrl ? (
+                  ) : post.mediaType === 'video' && post.mediaUrl && post.mediaUrl.trim() ? (
                     <FeedVideoPlayer
-                      src={post.mediaUrl}
+                      src={post.mediaUrl.trim()}
                       poster={post.thumbnailUrl}
                       musicTrack={post.musicTrack}
                       isVipUnlocked={post.isVIPOnly && post.isUnlocked}
                     />
-                  ) : post.mediaUrl ? (
+                  ) : post.mediaUrl && post.mediaUrl.trim() ? (
                     <div 
-                      onClick={() => setSelectedLightboxImage(post.mediaUrl || null)}
+                      onClick={() => setSelectedLightboxImage(post.mediaUrl?.trim() || null)}
                       className="relative w-full aspect-auto max-h-[520px] bg-stone-950 overflow-hidden cursor-zoom-in group"
                     >
                       <img
-                        src={post.mediaUrl}
+                        src={post.mediaUrl.trim()}
                         alt={post.content}
                         className="w-full h-full object-cover group-hover:scale-[1.015] transition-transform duration-300"
                         loading="lazy"
@@ -1004,11 +1004,13 @@ export const FeedView: React.FC<FeedViewProps> = ({
               className="max-w-4xl max-h-[85vh] overflow-hidden rounded-2xl flex items-center justify-center shadow-2xl border border-stone-800/80"
               onClick={(e) => e.stopPropagation()}
             >
-              <img
-                src={selectedLightboxImage}
-                alt="Aperçu HD"
-                className="max-w-full max-h-[85vh] object-contain rounded-2xl"
-              />
+              {selectedLightboxImage && selectedLightboxImage.trim() ? (
+                <img
+                  src={selectedLightboxImage.trim()}
+                  alt="Aperçu HD"
+                  className="max-w-full max-h-[85vh] object-contain rounded-2xl"
+                />
+              ) : null}
             </div>
           </motion.div>
         )}

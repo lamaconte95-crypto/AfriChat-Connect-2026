@@ -530,18 +530,18 @@ export const LiveStudioModal: React.FC<LiveStudioModalProps> = ({
                     </div>
                   )
                 ) : (
-                  activeLiveSession?.videoUrl ? (
+                  activeLiveSession?.videoUrl && activeLiveSession.videoUrl.trim() ? (
                     <video
-                      src={activeLiveSession.videoUrl}
+                      src={activeLiveSession.videoUrl.trim()}
                       autoPlay
                       loop
                       playsInline
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    activeLiveSession?.coverUrl ? (
+                    activeLiveSession?.coverUrl && activeLiveSession.coverUrl.trim() ? (
                       <img
-                        src={activeLiveSession.coverUrl}
+                        src={activeLiveSession.coverUrl.trim()}
                         alt="Live Cover"
                         className="w-full h-full object-cover"
                       />

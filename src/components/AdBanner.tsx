@@ -101,11 +101,17 @@ export const AdBanner: React.FC<AdBannerProps> = ({
           onClick={() => onOpenAdDetail(currentAd)}
           className="relative shrink-0 cursor-pointer group"
         >
-          <img
-            src={currentAd.sponsorLogo}
-            alt={currentAd.sponsorName}
-            className="w-11 h-11 rounded-xl object-cover border border-amber-500/50 shadow group-hover:scale-105 transition-transform"
-          />
+          {currentAd.sponsorLogo && currentAd.sponsorLogo.trim() ? (
+            <img
+              src={currentAd.sponsorLogo.trim()}
+              alt={currentAd.sponsorName}
+              className="w-11 h-11 rounded-xl object-cover border border-amber-500/50 shadow group-hover:scale-105 transition-transform"
+            />
+          ) : (
+            <div className="w-11 h-11 rounded-xl border border-amber-500/50 shadow bg-stone-800 flex items-center justify-center font-bold text-amber-400">
+              {currentAd.sponsorName?.charAt(0) || 'A'}
+            </div>
+          )}
           <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-amber-500 text-stone-950 flex items-center justify-center font-bold text-[8px]">
             <Sparkles className="w-2.5 h-2.5" />
           </div>

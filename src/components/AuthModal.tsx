@@ -676,7 +676,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                             : 'border-stone-800 opacity-60 hover:opacity-100'
                         }`}
                       >
-                        <img src={av} alt="Avatar Preset" className="w-full h-full object-cover" />
+                        {av && av.trim() ? (
+                          <img src={av.trim()} alt="Avatar Preset" className="w-full h-full object-cover" />
+                        ) : null}
                       </button>
                     );
                   })}

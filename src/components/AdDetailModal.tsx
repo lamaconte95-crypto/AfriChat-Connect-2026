@@ -68,9 +68,9 @@ export const AdDetailModal: React.FC<AdDetailModalProps> = ({
         >
           {/* Header Image Banner */}
           <div className="relative h-48 sm:h-56 w-full bg-stone-950 overflow-hidden">
-            {ad.imageUrl ? (
+            {ad.imageUrl && ad.imageUrl.trim() ? (
               <img
-                src={ad.imageUrl}
+                src={ad.imageUrl.trim()}
                 alt={ad.title}
                 className="w-full h-full object-cover"
               />
@@ -107,11 +107,17 @@ export const AdDetailModal: React.FC<AdDetailModalProps> = ({
 
             {/* Sponsor Info Card on Image */}
             <div className="absolute bottom-3 left-3 right-3 flex items-center space-x-3">
-              <img
-                src={ad.sponsorLogo}
-                alt={ad.sponsorName}
-                className="w-12 h-12 rounded-2xl object-cover border-2 border-amber-500 shadow-lg bg-stone-900"
-              />
+              {ad.sponsorLogo && ad.sponsorLogo.trim() ? (
+                <img
+                  src={ad.sponsorLogo.trim()}
+                  alt={ad.sponsorName}
+                  className="w-12 h-12 rounded-2xl object-cover border-2 border-amber-500 shadow-lg bg-stone-900"
+                />
+              ) : (
+                <div className="w-12 h-12 rounded-2xl border-2 border-amber-500 shadow-lg bg-stone-900 flex items-center justify-center font-bold text-amber-400">
+                  {ad.sponsorName?.charAt(0) || 'A'}
+                </div>
+              )}
               <div className="min-w-0 flex-1">
                 <div className="flex items-center space-x-1.5">
                   <h4 className="font-black text-sm text-white drop-shadow truncate">{ad.sponsorName}</h4>

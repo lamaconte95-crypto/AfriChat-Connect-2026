@@ -72,7 +72,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
   const sizeClass = sizeClasses[size] || sizeClasses.md;
   const iconSize = iconSizes[size] || 18;
 
-  if (isInvalidOrExternal || imageError) {
+  if (isInvalidOrExternal || imageError || !avatar || typeof avatar !== 'string' || !avatar.trim()) {
     return (
       <div
         className={`relative inline-flex items-center justify-center rounded-full bg-stone-800 border border-stone-700/60 text-stone-200 font-bold select-none shrink-0 shadow-inner ${sizeClass} ${className}`}
@@ -100,7 +100,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
   return (
     <div className={`relative inline-block rounded-full shrink-0 overflow-hidden ${sizeClass} ${className}`}>
       <img
-        src={avatar}
+        src={avatar.trim()}
         alt={name || username || 'Avatar'}
         className="w-full h-full object-cover"
         referrerPolicy="no-referrer"

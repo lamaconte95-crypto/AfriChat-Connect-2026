@@ -164,8 +164,8 @@ export const CreatePageModal: React.FC<CreatePageModalProps> = ({
 
               {/* Cover Preview with Avatar Overlay */}
               <div className="relative rounded-2xl overflow-hidden aspect-[3/1] bg-stone-950 border border-stone-800 group">
-                {coverUrl ? (
-                  <img src={coverUrl} alt="Cover" className="w-full h-full object-cover" />
+                {coverUrl && coverUrl.trim() ? (
+                  <img src={coverUrl.trim()} alt="Cover" className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full bg-gradient-to-r from-stone-900 via-stone-800 to-stone-900 flex items-center justify-center text-stone-600 text-xs">
                     <span>Bannière par défaut</span>

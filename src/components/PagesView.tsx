@@ -191,7 +191,11 @@ export const PagesView: React.FC<PagesViewProps> = ({
           <div className="rounded-3xl bg-stone-900 border border-stone-800 overflow-hidden shadow-xl">
             {/* Cover */}
             <div className="relative aspect-[3/1] bg-stone-950">
-              <img src={selectedPage.coverImage} alt="Cover" className="w-full h-full object-cover" />
+              {selectedPage.coverImage && selectedPage.coverImage.trim() ? (
+                <img src={selectedPage.coverImage.trim()} alt="Cover" className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-r from-amber-600/30 to-orange-600/30 flex items-center justify-center text-stone-600 text-xs" />
+              )}
               <div className="absolute inset-0 bg-gradient-to-t from-stone-950 via-transparent to-transparent" />
             </div>
 
@@ -199,11 +203,17 @@ export const PagesView: React.FC<PagesViewProps> = ({
             <div className="p-5 relative -mt-10 sm:-mt-12 space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
                 <div className="flex items-end space-x-3.5">
-                  <img
-                    src={selectedPage.avatar}
-                    alt={selectedPage.name}
-                    className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl object-cover border-4 border-stone-900 shadow-2xl bg-stone-900"
-                  />
+                  {selectedPage.avatar && selectedPage.avatar.trim() ? (
+                    <img
+                      src={selectedPage.avatar.trim()}
+                      alt={selectedPage.name}
+                      className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl object-cover border-4 border-stone-900 shadow-2xl bg-stone-900"
+                    />
+                  ) : (
+                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl border-4 border-stone-900 shadow-2xl bg-stone-800 flex items-center justify-center text-stone-400 font-bold text-lg">
+                      {selectedPage.name?.charAt(0) || 'P'}
+                    </div>
+                  )}
                   <div>
                     <div className="flex items-center space-x-1.5">
                       <h3 className="text-lg sm:text-xl font-black text-white">{selectedPage.name}</h3>
@@ -307,12 +317,12 @@ export const PagesView: React.FC<PagesViewProps> = ({
                   className="p-4 rounded-3xl bg-stone-900 border border-stone-800 space-y-3"
                 >
                   <p className="text-xs text-stone-200 leading-relaxed">{post.content}</p>
-                  {post.mediaUrl && (
+                  {post.mediaUrl && post.mediaUrl.trim() && (
                     <div className="rounded-2xl overflow-hidden aspect-video bg-stone-950">
                       {post.mediaType === 'video' ? (
-                        <video src={post.mediaUrl} controls className="w-full h-full object-cover" />
+                        <video src={post.mediaUrl.trim()} controls className="w-full h-full object-cover" />
                       ) : (
-                        <img src={post.mediaUrl} alt="Post media" className="w-full h-full object-cover" />
+                        <img src={post.mediaUrl.trim()} alt="Post media" className="w-full h-full object-cover" />
                       )}
                     </div>
                   )}
@@ -358,11 +368,15 @@ export const PagesView: React.FC<PagesViewProps> = ({
                 onClick={() => setSelectedPage(page)}
                 className="relative aspect-[3/1] bg-stone-950 cursor-pointer overflow-hidden"
               >
-                <img
-                  src={page.coverImage}
-                  alt={page.name}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                />
+                {page.coverImage && page.coverImage.trim() ? (
+                  <img
+                    src={page.coverImage.trim()}
+                    alt={page.name}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-r from-stone-900 via-stone-850 to-stone-900" />
+                )}
                 <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur text-[10px] font-bold text-amber-300 border border-amber-500/30">
                   {page.categoryLabel}
                 </span>
@@ -372,12 +386,21 @@ export const PagesView: React.FC<PagesViewProps> = ({
               <div className="p-4 space-y-3 flex-1 flex flex-col justify-between">
                 <div>
                   <div className="flex items-start space-x-3">
-                    <img
-                      src={page.avatar}
-                      alt={page.name}
-                      onClick={() => setSelectedPage(page)}
-                      className="w-12 h-12 rounded-2xl object-cover border-2 border-amber-500/80 shadow-md cursor-pointer -mt-7 bg-stone-900 shrink-0"
-                    />
+                    {page.avatar && page.avatar.trim() ? (
+                      <img
+                        src={page.avatar.trim()}
+                        alt={page.name}
+                        onClick={() => setSelectedPage(page)}
+                        className="w-12 h-12 rounded-2xl object-cover border-2 border-amber-500/80 shadow-md cursor-pointer -mt-7 bg-stone-900 shrink-0"
+                      />
+                    ) : (
+                      <div
+                        onClick={() => setSelectedPage(page)}
+                        className="w-12 h-12 rounded-2xl border-2 border-amber-500/80 shadow-md cursor-pointer -mt-7 bg-stone-900 shrink-0 flex items-center justify-center font-bold text-sm text-stone-300"
+                      >
+                        {page.name?.charAt(0) || 'P'}
+                      </div>
+                    )}
                     <div className="min-w-0 flex-1">
                       <div
                         onClick={() => setSelectedPage(page)}

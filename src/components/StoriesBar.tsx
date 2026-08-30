@@ -141,11 +141,17 @@ export const StoryViewerModal: React.FC<StoryViewerModalProps> = ({
         >
           {/* Background Story Media */}
           <div className="absolute inset-0 z-0">
-            <img
-              src={story.mediaUrl}
-              alt={story.caption}
-              className={`w-full h-full object-cover ${story.vipLocked ? 'filter blur-md brightness-75 scale-105' : ''}`}
-            />
+            {story.mediaUrl && story.mediaUrl.trim() ? (
+              <img
+                src={story.mediaUrl.trim()}
+                alt={story.caption || 'Story'}
+                className={`w-full h-full object-cover ${story.vipLocked ? 'filter blur-md brightness-75 scale-105' : ''}`}
+              />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-b from-stone-900 via-stone-850 to-stone-950 flex items-center justify-center text-stone-500 text-xs">
+                Story
+              </div>
+            )}
             <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-transparent to-black/90" />
           </div>
 

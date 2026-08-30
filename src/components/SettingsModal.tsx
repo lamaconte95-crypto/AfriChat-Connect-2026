@@ -1442,9 +1442,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         }}
                         className="p-2.5 rounded-xl bg-stone-900 hover:bg-stone-850 border border-stone-800 hover:border-amber-500/40 text-left transition-all flex items-center space-x-2.5 cursor-pointer group"
                       >
-                        {ad.sponsorLogo ? (
+                        {ad.sponsorLogo && ad.sponsorLogo.trim() ? (
                           <img
-                            src={ad.sponsorLogo}
+                            src={ad.sponsorLogo.trim()}
                             alt={ad.sponsorName}
                             className="w-8 h-8 rounded-lg object-cover border border-stone-700 group-hover:border-amber-500 shrink-0"
                           />

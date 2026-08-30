@@ -403,13 +403,13 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
               )}
 
               {/* Media Preview Player & Visualizer */}
-              {mediaUrl && (
+              {mediaUrl && mediaUrl.trim() && (
                 <div className="relative rounded-2xl overflow-hidden bg-stone-950 border border-amber-500/30 max-h-56 flex items-center justify-center group">
                   {mediaType === 'video' ? (
                     <div className="relative w-full h-full">
                       <video
                         ref={previewVideoRef}
-                        src={mediaUrl}
+                        src={mediaUrl.trim()}
                         controls
                         muted={isVideoMuted}
                         className="w-full max-h-56 object-cover rounded-xl"
@@ -433,7 +433,7 @@ export const CreatePostModal: React.FC<CreatePostModalProps> = ({
                     </div>
                   ) : (
                     <img
-                      src={mediaUrl}
+                      src={mediaUrl.trim()}
                       alt="Aperçu du média"
                       className="w-full max-h-56 object-cover rounded-xl"
                     />

@@ -152,11 +152,11 @@ export const ReelsView: React.FC<ReelsViewProps> = ({
         onClick={() => setIsPlaying(!isPlaying)}
         onDoubleClick={handleDoubleTap}
       >
-        {currentReel.mediaUrl && !isVipLocked ? (
+        {currentReel.mediaUrl && currentReel.mediaUrl.trim() && !isVipLocked ? (
           <video
             key={currentReel.id}
-            src={currentReel.mediaUrl}
-            poster={currentReel.thumbnailUrl}
+            src={currentReel.mediaUrl.trim()}
+            poster={currentReel.thumbnailUrl && currentReel.thumbnailUrl.trim() ? currentReel.thumbnailUrl.trim() : undefined}
             className="w-full h-full object-cover"
             loop
             playsInline
@@ -171,9 +171,9 @@ export const ReelsView: React.FC<ReelsViewProps> = ({
           />
         ) : isVipLocked ? (
           <div className="relative w-full h-full flex flex-col items-center justify-center p-6 text-center bg-gradient-to-b from-stone-900 via-stone-950 to-stone-900">
-            {currentReel.thumbnailUrl && (
+            {currentReel.thumbnailUrl && currentReel.thumbnailUrl.trim() && (
               <img
-                src={currentReel.thumbnailUrl}
+                src={currentReel.thumbnailUrl.trim()}
                 alt="Locked Reel"
                 className="absolute inset-0 w-full h-full object-cover filter blur-2xl opacity-40 scale-110"
               />

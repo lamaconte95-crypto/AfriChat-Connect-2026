@@ -234,9 +234,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
       >
         {/* 1. Large Cover Area (Grande zone d'image de couverture) */}
         <div className="relative h-44 sm:h-52 w-full overflow-hidden bg-stone-950">
-          {customCoverUrl ? (
+          {customCoverUrl && customCoverUrl.trim() ? (
             <img
-              src={customCoverUrl}
+              src={customCoverUrl.trim()}
               alt="Couverture de profil"
               className="w-full h-full object-cover object-center opacity-85"
             />
@@ -617,15 +617,15 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
                   key={post.id}
                   className="relative aspect-square rounded-2xl overflow-hidden bg-stone-900 border border-stone-800 group"
                 >
-                  {post.mediaUrl ? (
+                  {post.mediaUrl && post.mediaUrl.trim() ? (
                     post.mediaType === 'video' ? (
                       <video
-                        src={post.mediaUrl}
+                        src={post.mediaUrl.trim()}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                       />
                     ) : (
                       <img
-                        src={post.mediaUrl}
+                        src={post.mediaUrl.trim()}
                         alt={post.content}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                       />

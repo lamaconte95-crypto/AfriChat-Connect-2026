@@ -230,16 +230,16 @@ export const CreateStoryModal: React.FC<CreateStoryModalProps> = ({
 
             {/* Media Preview Box */}
             <div className="relative rounded-2xl overflow-hidden bg-stone-950 border border-stone-800 h-64 flex items-center justify-center">
-              {mediaUrl ? (
+              {mediaUrl && mediaUrl.trim() ? (
                 mediaType === 'video' ? (
                   <video
-                    src={mediaUrl}
+                    src={mediaUrl.trim()}
                     controls
                     className="w-full h-full object-cover"
                   />
                 ) : (
                   <img
-                    src={mediaUrl}
+                    src={mediaUrl.trim()}
                     alt="Story preview"
                     className="w-full h-full object-cover"
                   />
