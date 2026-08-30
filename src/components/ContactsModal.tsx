@@ -160,13 +160,22 @@ export const ContactsModal: React.FC<ContactsModalProps> = ({
 
     // Search query filtering
     if (!searchQuery.trim()) return true;
-    const query = searchQuery.toLowerCase();
+    const rawQ = searchQuery.trim().toLowerCase();
+    const cleanQ = rawQ.replace(/^@+/, '');
+    const cName = (c.name || '').toLowerCase();
+    const cUser = (c.username || '').toLowerCase();
+    const cUserClean = cUser.replace(/^@+/, '');
+    const cCountry = (c.country || '').toLowerCase();
+    const cPhone = (c.phoneNumber || '').toLowerCase();
+    const cBio = (c.bio || '').toLowerCase();
+
     return (
-      c.name.toLowerCase().includes(query) ||
-      c.username.toLowerCase().includes(query) ||
-      c.country.toLowerCase().includes(query) ||
-      (c.phoneNumber && c.phoneNumber.includes(query)) ||
-      (c.bio && c.bio.toLowerCase().includes(query))
+      cName.includes(cleanQ) ||
+      cUser.includes(rawQ) ||
+      cUserClean.includes(cleanQ) ||
+      cCountry.includes(cleanQ) ||
+      cPhone.includes(cleanQ) ||
+      cBio.includes(cleanQ)
     );
   });
 

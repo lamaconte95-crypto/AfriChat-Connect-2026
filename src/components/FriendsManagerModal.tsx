@@ -148,7 +148,7 @@ export const FriendsManagerModal: React.FC<FriendsManagerModalProps> = ({
   const allFriends = contacts.filter((c) => c.isFriend && !c.isBlocked);
   const pendingRequests = friendRequests.filter((r) => r.status === 'pending');
 
-  // Combined Suggested Members: SUGGESTED_MEMBERS + any non-friend contacts from Supabase in contacts list
+  // Combined Suggested Members: SUGGESTED_MEMBERS + any non-friend contacts from Supabase in contacts list + live search results
   const dynamicSuggested: Array<Omit<Contact, 'id' | 'userId' | 'isBlocked' | 'isOnline'>> = [
     ...SUGGESTED_MEMBERS,
     ...contacts
@@ -163,6 +163,21 @@ export const FriendsManagerModal: React.FC<FriendsManagerModalProps> = ({
         bio: c.bio || `Membre inscrit sur la communauté AfriChat ${c.flag}`,
         isVIP: c.isVIP,
         isFriend: false,
+        mutualFriendsCount: c.mutualFriendsCount || 3,
+        category: c.category || 'friend',
+      })),
+    ...supabaseSearchResults
+      .filter((c) => c.id !== currentUser.id)
+      .map((c) => ({
+        name: c.name,
+        username: c.username,
+        avatar: c.avatar,
+        flag: c.flag,
+        country: c.country,
+        phoneNumber: c.phoneNumber,
+        bio: c.bio || `Membre inscrit sur la communauté AfriChat ${c.flag}`,
+        isVIP: c.isVIP,
+        isFriend: Boolean(c.isFriend),
         mutualFriendsCount: c.mutualFriendsCount || 3,
         category: c.category || 'friend',
       })),
@@ -238,28 +253,59 @@ export const FriendsManagerModal: React.FC<FriendsManagerModalProps> = ({
     }
   };
 
+  // Case-insensitive and @-agnostic contact search matching
+  const rawQ = searchQuery.trim().toLowerCase();
+  const cleanQ = rawQ.replace(/^@+/, '');
+
+  const matchesContactSearch = (c: {
+    name: string;
+    username: string;
+    country?: string;
+    bio?: string;
+    phoneNumber?: string;
+  }) => {
+    if (!cleanQ) return true;
+    const name = (c.name || '').toLowerCase();
+    const user = (c.username || '').toLowerCase();
+    const userClean = user.replace(/^@+/, '');
+    const country = (c.country || '').toLowerCase();
+    const bio = (c.bio || '').toLowerCase();
+    const phone = (c.phoneNumber || '').toLowerCase();
+
+    return (
+      name.includes(cleanQ) ||
+      user.includes(rawQ) ||
+      userClean.includes(cleanQ) ||
+      country.includes(cleanQ) ||
+      bio.includes(cleanQ) ||
+      phone.includes(cleanQ)
+    );
+  };
+
+  const sortRanked = (a: any, b: any) => {
+    if (!cleanQ) return 0;
+    const aName = (a.name || '').toLowerCase();
+    const bName = (b.name || '').toLowerCase();
+    const aUser = (a.username || '').toLowerCase().replace(/^@+/, '');
+    const bUser = (b.username || '').toLowerCase().replace(/^@+/, '');
+
+    const aExact = aUser === cleanQ || aName === cleanQ;
+    const bExact = bUser === cleanQ || bName === cleanQ;
+    if (aExact && !bExact) return -1;
+    if (!aExact && bExact) return 1;
+
+    const aStartsWith = aUser.startsWith(cleanQ) || aName.startsWith(cleanQ);
+    const bStartsWith = bUser.startsWith(cleanQ) || bName.startsWith(cleanQ);
+    if (aStartsWith && !bStartsWith) return -1;
+    if (!aStartsWith && bStartsWith) return 1;
+
+    return aName.localeCompare(bName);
+  };
+
   // Filtered lists based on search query
-  const filteredOnline = onlineFriends.filter(
-    (c) =>
-      c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.country.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const filteredAllFriends = allFriends.filter(
-    (c) =>
-      c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      c.country.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const filteredSuggested = allSuggestedMembers.filter(
-    (m) =>
-      m.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      m.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      m.country.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (m.bio && m.bio.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const filteredOnline = onlineFriends.filter(matchesContactSearch).sort(sortRanked);
+  const filteredAllFriends = allFriends.filter(matchesContactSearch).sort(sortRanked);
+  const filteredSuggested = allSuggestedMembers.filter(matchesContactSearch).sort(sortRanked);
 
   return (
     <AnimatePresence>

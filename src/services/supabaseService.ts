@@ -2,6 +2,7 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { getApiCredentials } from './apiConfigService';
 import { User, Message, Post, Comment, Contact, LiveStreamSession, LiveChatMessage, Story } from '../types';
 import { dispatchSocialWebhook, getSupabaseWebhookSql, getWebhookConfig } from './webhookService';
+import { getAllRegisteredUsersFromFirestore } from '../lib/firebase';
 
 let supabaseInstance: SupabaseClient | null = null;
 let currentLoadedUrl = '';
@@ -93,9 +94,9 @@ export const supabaseSignUp = async (email: string, password: string, userData: 
         },
       });
 
-      // If user created, insert into 'profiles' table
+      // If user created, insert into 'profiles' and 'users' table
       if (data?.user && !error) {
-        await client.from('profiles').upsert({
+        const profilePayload = {
           id: data.user.id,
           email,
           name: userData.name || '',
@@ -104,11 +105,23 @@ export const supabaseSignUp = async (email: string, password: string, userData: 
           flag: userData.flag || '🇨🇮',
           phone_number: userData.phoneNumber || '',
           avatar_url: userData.avatar || '',
+          avatar: userData.avatar || '',
           bio: userData.bio || '',
           is_vip: userData.isVIP || false,
           role: userData.role || 'user',
           updated_at: new Date().toISOString(),
-        });
+        };
+
+        try {
+          await client.from('profiles').upsert(profilePayload);
+        } catch (e) {
+          console.warn('[Supabase profiles upsert notice]:', e);
+        }
+        try {
+          await client.from('users').upsert(profilePayload);
+        } catch (e) {
+          console.warn('[Supabase users upsert notice]:', e);
+        }
       }
 
       return { data, error, simulated: false };
@@ -331,75 +344,137 @@ export const supabaseSearchUsers = async (query: string): Promise<{
   error: any;
   simulated: boolean;
 }> => {
-  const client = getSupabaseClient();
-  if (!client || !query.trim()) return { data: [], error: null, simulated: true };
+  const rawQuery = (query || '').trim();
+  if (!rawQuery) return { data: [], error: null, simulated: true };
+
+  const cleanQuery = rawQuery.replace(/^@+/, '').trim();
+  const lowerQ = cleanQuery.toLowerCase();
+  const rawLowerQ = rawQuery.toLowerCase();
 
   const operation = async () => {
     try {
-      const cleanQuery = query.trim().replace(/^@/, '');
       const searchMap = new Map<string, Contact>();
-      
-      // 1. Search in 'users' table (both prefix match and substring match)
-      try {
-        const { data: usersData } = await client
-          .from('users')
-          .select('*')
-          .or(
-            `name.ilike.${cleanQuery}%,name.ilike.% ${cleanQuery}%,username.ilike.${cleanQuery}%,username.ilike.@${cleanQuery}%,name.ilike.%${cleanQuery}%,username.ilike.%${cleanQuery}%,country.ilike.%${cleanQuery}%`
-          )
-          .limit(80);
+      const client = getSupabaseClient();
 
-        if (usersData && usersData.length > 0) {
-          usersData.forEach((u) => {
-            const contact = profileToContact(u);
-            searchMap.set(contact.id, contact);
-          });
-        }
-      } catch (e) {
-        console.warn('[Supabase search users notice]:', e);
-      }
+      if (client && cleanQuery) {
+        // 1. Search in 'users' table with case-insensitive ilike
+        try {
+          const { data: usersData } = await client
+            .from('users')
+            .select('*')
+            .or(
+              `name.ilike.%${cleanQuery}%,username.ilike.%${cleanQuery}%,username.ilike.@%${cleanQuery}%,full_name.ilike.%${cleanQuery}%,country.ilike.%${cleanQuery}%,phone_number.ilike.%${cleanQuery}%,email.ilike.%${cleanQuery}%`
+            )
+            .limit(100);
 
-      // 2. Search in 'profiles' table
-      try {
-        const { data: profilesData } = await client
-          .from('profiles')
-          .select('*')
-          .or(
-            `name.ilike.${cleanQuery}%,name.ilike.% ${cleanQuery}%,username.ilike.${cleanQuery}%,username.ilike.@${cleanQuery}%,name.ilike.%${cleanQuery}%,username.ilike.%${cleanQuery}%,country.ilike.%${cleanQuery}%`
-          )
-          .limit(80);
-
-        if (profilesData && profilesData.length > 0) {
-          profilesData.forEach((p) => {
-            const contact = profileToContact(p);
-            searchMap.set(contact.id, {
-              ...(searchMap.get(contact.id) || {}),
-              ...contact,
+          if (usersData && usersData.length > 0) {
+            usersData.forEach((u) => {
+              const contact = profileToContact(u);
+              const key = contact.id || contact.username.toLowerCase();
+              searchMap.set(key, contact);
             });
+          }
+        } catch (e) {
+          console.warn('[Supabase search users notice]:', e);
+        }
+
+        // 2. Search in 'profiles' table with case-insensitive ilike
+        try {
+          const { data: profilesData } = await client
+            .from('profiles')
+            .select('*')
+            .or(
+              `name.ilike.%${cleanQuery}%,username.ilike.%${cleanQuery}%,username.ilike.@%${cleanQuery}%,full_name.ilike.%${cleanQuery}%,country.ilike.%${cleanQuery}%,phone_number.ilike.%${cleanQuery}%,email.ilike.%${cleanQuery}%`
+            )
+            .limit(100);
+
+          if (profilesData && profilesData.length > 0) {
+            profilesData.forEach((p) => {
+              const contact = profileToContact(p);
+              const key = contact.id || contact.username.toLowerCase();
+              searchMap.set(key, {
+                ...(searchMap.get(key) || {}),
+                ...contact,
+              });
+            });
+          }
+        } catch (e) {
+          console.warn('[Supabase search profiles notice]:', e);
+        }
+      }
+
+      // 3. Search and merge Firebase Firestore registered users for 100% account visibility
+      try {
+        const firestoreUsers = await getAllRegisteredUsersFromFirestore();
+        if (firestoreUsers && firestoreUsers.length > 0) {
+          firestoreUsers.forEach((fbUser) => {
+            const fbName = (fbUser.name || '').toLowerCase();
+            const fbUsername = (fbUser.username || '').toLowerCase();
+            const fbUserClean = fbUsername.replace(/^@+/, '');
+            const fbCountry = (fbUser.country || '').toLowerCase();
+            const fbPhone = (fbUser.phoneNumber || '').toLowerCase();
+            const fbEmail = (fbUser.email || '').toLowerCase();
+            const fbBio = (fbUser.bio || '').toLowerCase();
+
+            const isMatch =
+              fbName.includes(lowerQ) ||
+              fbUserClean.includes(lowerQ) ||
+              fbUsername.includes(rawLowerQ) ||
+              fbCountry.includes(lowerQ) ||
+              fbPhone.includes(lowerQ) ||
+              fbEmail.includes(lowerQ) ||
+              fbBio.includes(lowerQ);
+
+            if (isMatch) {
+              const contact = profileToContact({
+                id: fbUser.id,
+                name: fbUser.name,
+                username: fbUser.username,
+                avatar: fbUser.avatar,
+                avatar_url: fbUser.avatar,
+                country: fbUser.country,
+                flag: fbUser.flag,
+                phone_number: fbUser.phoneNumber,
+                bio: fbUser.bio,
+                is_vip: fbUser.isVIP,
+                is_verified: fbUser.isVerified,
+              });
+              const key = contact.id || contact.username.toLowerCase();
+              if (!searchMap.has(key)) {
+                searchMap.set(key, contact);
+              }
+            }
           });
         }
       } catch (e) {
-        console.warn('[Supabase search profiles notice]:', e);
+        console.warn('[Firestore fallback search notice]:', e);
       }
 
-      // Sort results: Members whose name or username starts with the letter appear at the very top
-      const lowerQ = cleanQuery.toLowerCase();
+      // 4. Intelligent ranking: Exact matches > Prefix matches > Substring matches
       const results = Array.from(searchMap.values()).sort((a, b) => {
-        const aName = a.name.toLowerCase();
-        const bName = b.name.toLowerCase();
-        const aUser = a.username.toLowerCase().replace(/^@/, '');
-        const bUser = b.username.toLowerCase().replace(/^@/, '');
+        const aName = (a.name || '').toLowerCase();
+        const bName = (b.name || '').toLowerCase();
+        const aUser = (a.username || '').toLowerCase().replace(/^@+/, '');
+        const bUser = (b.username || '').toLowerCase().replace(/^@+/, '');
 
-        const aStartsWith = aName.startsWith(lowerQ) || aUser.startsWith(lowerQ);
-        const bStartsWith = bName.startsWith(lowerQ) || bUser.startsWith(lowerQ);
+        // Exact match on username or name
+        const aExact = aUser === lowerQ || aName === lowerQ || (a.username || '').toLowerCase() === rawLowerQ;
+        const bExact = bUser === lowerQ || bName === lowerQ || (b.username || '').toLowerCase() === rawLowerQ;
+        if (aExact && !bExact) return -1;
+        if (!aExact && bExact) return 1;
 
+        // Prefix match on username or name
+        const aStartsWith = aUser.startsWith(lowerQ) || aName.startsWith(lowerQ);
+        const bStartsWith = bUser.startsWith(lowerQ) || bName.startsWith(lowerQ);
         if (aStartsWith && !bStartsWith) return -1;
         if (!aStartsWith && bStartsWith) return 1;
+
         return aName.localeCompare(bName);
       });
 
       return { data: results, error: null, simulated: false };
     } catch (err: any) {
+      console.error('[Supabase search error]:', err);
       return { error: err, data: [], simulated: false };
     }
   };

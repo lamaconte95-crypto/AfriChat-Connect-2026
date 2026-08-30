@@ -154,27 +154,35 @@ export const MessagesView: React.FC<MessagesViewProps> = ({
   }, [searchQuery, currentUser.id, currentUser.username]);
 
   // Filter Conversations
+  const rawQ = searchQuery.trim().toLowerCase();
+  const cleanQ = rawQ.replace(/^@+/, '');
+
   const filteredConversations = conversations.filter((c) => {
     if (filterType === 'vip') return c.isVIPRoom;
     if (filterType === 'direct') return !c.isVIPRoom;
     return true;
   }).filter((c) => {
-    if (!searchQuery) return true;
-    const q = searchQuery.toLowerCase();
-    return c.name.toLowerCase().includes(q) || 
-           c.lastMessage?.toLowerCase().includes(q) ||
-           c.hostName?.toLowerCase().includes(q);
+    if (!cleanQ) return true;
+    return (c.name || '').toLowerCase().includes(cleanQ) || 
+           (c.lastMessage || '').toLowerCase().includes(cleanQ) ||
+           (c.hostName || '').toLowerCase().includes(cleanQ);
   });
 
   // Filter Contacts for search & contacts tab
   const localFilteredContacts = contacts.filter((c) => {
-    if (!searchQuery) return true;
-    const q = searchQuery.toLowerCase();
+    if (!cleanQ) return true;
+    const cName = (c.name || '').toLowerCase();
+    const cUser = (c.username || '').toLowerCase();
+    const cUserClean = cUser.replace(/^@+/, '');
+    const cCountry = (c.country || '').toLowerCase();
+    const cPhone = (c.phoneNumber || '').toLowerCase();
+
     return (
-      c.name.toLowerCase().includes(q) ||
-      c.username.toLowerCase().includes(q) ||
-      c.country.toLowerCase().includes(q) ||
-      (c.phoneNumber && c.phoneNumber.includes(q))
+      cName.includes(cleanQ) ||
+      cUser.includes(rawQ) ||
+      cUserClean.includes(cleanQ) ||
+      cCountry.includes(cleanQ) ||
+      cPhone.includes(cleanQ)
     );
   });
 

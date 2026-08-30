@@ -511,9 +511,19 @@ export function buildDefaultUser(
  */
 export function formatFirebaseAuthError(error: any): string {
   const code = error?.code || '';
+  const message = error?.message || '';
+  
+  if (
+    code === 'auth/email-already-in-use' ||
+    message.includes('auth/email-already-in-use') ||
+    message.toLowerCase().includes('already in use') ||
+    message.toLowerCase().includes('already registered') ||
+    message.toLowerCase().includes('user_already_exists')
+  ) {
+    return "Cette adresse e-mail est déjà associée à un compte existant. Veuillez vous rendre sur l'onglet 'Connexion' pour vous identifier ou réinitialiser votre mot de passe.";
+  }
+
   switch (code) {
-    case 'auth/email-already-in-use':
-      return 'Cette adresse e-mail est déjà associée à un compte existant.';
     case 'auth/invalid-email':
       return 'Veuillez saisir une adresse e-mail valide.';
     case 'auth/weak-password':

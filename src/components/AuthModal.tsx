@@ -33,6 +33,7 @@ import {
   RefreshCw,
   Clock,
   Send,
+  LogIn,
 } from 'lucide-react';
 import { auth, buildDefaultUser, getUserProfile, saveUserProfile, updateUserProfileDoc, formatFirebaseAuthError, AVATAR_PRESETS } from '../lib/firebase';
 import { supabaseResetPassword, supabaseSignUp } from '../services/supabaseService';
@@ -159,7 +160,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       setSuccessMessage(`Un e-mail de confirmation avec votre code à 6 chiffres a été envoyé à ${email.trim()}.`);
     } catch (err: any) {
       console.error('Sign up error:', err);
-      setErrorMessage(formatFirebaseAuthError(err));
+      const code = err?.code || '';
+      const message = err?.message || '';
+      if (
+        code === 'auth/email-already-in-use' ||
+        message.includes('auth/email-already-in-use') ||
+        message.toLowerCase().includes('already in use') ||
+        message.toLowerCase().includes('already registered') ||
+        message.toLowerCase().includes('user_already_exists')
+      ) {
+        setErrorMessage(
+          "Cette adresse e-mail est déjà associée à un compte existant sur AfriChat Connect. Rendez-vous sur l'onglet 'Connexion' pour vous identifier ou réinitialiser votre mot de passe."
+        );
+      } else {
+        setErrorMessage(formatFirebaseAuthError(err));
+      }
     } finally {
       setIsLoading(false);
     }
@@ -485,9 +500,26 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         <div className="p-5 sm:p-6 overflow-y-auto space-y-4">
           {/* Notifications / Alerts */}
           {errorMessage && (
-            <div className="p-3.5 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs flex items-start space-x-2 animate-in fade-in">
-              <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-              <span>{errorMessage}</span>
+            <div className="p-3.5 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs flex flex-col space-y-2 animate-in fade-in">
+              <div className="flex items-start space-x-2">
+                <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                <span className="leading-relaxed">{errorMessage}</span>
+              </div>
+              {mode === 'signup' && (errorMessage.includes('déjà') || errorMessage.includes('Connexion')) && (
+                <button
+                  type="button"
+                  id="switch-to-signin-btn"
+                  onClick={() => {
+                    setMode('signin');
+                    setErrorMessage(null);
+                    setSuccessMessage(`Connectez-vous avec votre adresse e-mail : ${email || ''}`);
+                  }}
+                  className="self-start mt-1 py-1.5 px-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-black text-[11px] flex items-center space-x-1.5 transition-all cursor-pointer shadow-md shadow-amber-500/20 active:scale-95"
+                >
+                  <LogIn className="w-3.5 h-3.5" />
+                  <span>Basculer vers l'onglet Connexion →</span>
+                </button>
+              )}
             </div>
           )}
 
