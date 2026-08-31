@@ -261,14 +261,28 @@ export const createInitialGameState = (params: {
 
 /**
  * Supabase Realtime Channel Subscription for live Tic-Tac-Toe gameplay.
+ * Connects to 'game_room' and room-specific channels to sync between PC and Mobile.
  */
 export interface GameRealtimeHandlers {
-  onMove?: (data: { index: number; player: 'X' | 'O'; nextTurn: 'X' | 'O' }) => void;
-  onRematch?: () => void;
-  onJoin?: (guest: GamePlayerInfo) => void;
-  onReaction?: (reaction: { emoji: string; text?: string; senderName: string; senderId: string }) => void;
+  onMove?: (data: {
+    gameId?: string;
+    index: number;
+    player: 'X' | 'O';
+    nextTurn: 'X' | 'O';
+    board?: TicTacToeCell[];
+    scores?: { playerX: number; playerO: number; draws: number };
+    status?: TicTacToeGameState['status'];
+    winner?: 'X' | 'O' | 'draw' | null;
+    winningLine?: [number, number, number] | null;
+  }) => void;
+  onRematch?: (data?: { gameId?: string; timestamp?: number }) => void;
+  onJoin?: (guest: GamePlayerInfo, gameId?: string) => void;
+  onReaction?: (reaction: { emoji: string; text?: string; senderName: string; senderId: string; gameId?: string }) => void;
   onStateSync?: (state: Partial<TicTacToeGameState>) => void;
 }
+
+// Keep active channels map to reuse or clean up properly
+const activeChannels = new Map<string, any>();
 
 export const subscribeToGameChannel = (
   gameId: string,
@@ -276,95 +290,150 @@ export const subscribeToGameChannel = (
 ): (() => void) => {
   const client = getSupabaseClient();
   if (!client) {
+    console.log('[Supabase Realtime] No client available, offline fallback enabled');
     return () => {};
   }
 
-  const channelName = `game_tictactoe:${gameId}`;
-  const channel = client.channel(channelName, {
-    config: {
-      broadcast: { self: false },
-    },
+  // Subscribe to 'game_room' channel (universal channel for cross-device PC/Mobile sync)
+  // and room-specific channel 'game_room_' + gameId
+  const channelNames = ['game_room', `game_room_${gameId}`, `game_tictactoe:${gameId}`];
+  const subscriptions: any[] = [];
+
+  channelNames.forEach((channelName) => {
+    try {
+      const channel = client.channel(channelName, {
+        config: {
+          broadcast: { self: false },
+        },
+      });
+
+      channel
+        .on('broadcast', { event: 'game_move' }, (payload) => {
+          if (!payload?.payload) return;
+          const data = payload.payload;
+          // Filter if gameId specified and doesn't match
+          if (data.gameId && data.gameId !== gameId) return;
+          if (handlers.onMove) {
+            handlers.onMove(data);
+          }
+        })
+        .on('broadcast', { event: 'game_rematch' }, (payload) => {
+          const data = payload?.payload;
+          if (data?.gameId && data.gameId !== gameId) return;
+          if (handlers.onRematch) {
+            handlers.onRematch(data);
+          }
+        })
+        .on('broadcast', { event: 'game_join' }, (payload) => {
+          const data = payload?.payload;
+          if (!data) return;
+          if (data.gameId && data.gameId !== gameId) return;
+          const guestInfo = data.guest || data;
+          if (handlers.onJoin) {
+            handlers.onJoin(guestInfo, data.gameId || gameId);
+          }
+        })
+        .on('broadcast', { event: 'game_reaction' }, (payload) => {
+          const data = payload?.payload;
+          if (!data) return;
+          if (data.gameId && data.gameId !== gameId) return;
+          if (handlers.onReaction) {
+            handlers.onReaction(data);
+          }
+        })
+        .on('broadcast', { event: 'game_sync' }, (payload) => {
+          const data = payload?.payload;
+          if (!data) return;
+          if (data.gameId && data.gameId !== gameId) return;
+          if (handlers.onStateSync) {
+            handlers.onStateSync(data.state || data);
+          }
+        })
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            console.log(`[Supabase Realtime] Connected to channel '${channelName}' for Game ID: ${gameId}`);
+          }
+        });
+
+      subscriptions.push(channel);
+      activeChannels.set(channelName, channel);
+    } catch (err) {
+      console.warn(`[Supabase Realtime] Error subscribing to channel ${channelName}:`, err);
+    }
   });
 
-  channel
-    .on('broadcast', { event: 'game_move' }, (payload) => {
-      if (payload.payload && handlers.onMove) {
-        handlers.onMove(payload.payload);
-      }
-    })
-    .on('broadcast', { event: 'game_rematch' }, () => {
-      if (handlers.onRematch) {
-        handlers.onRematch();
-      }
-    })
-    .on('broadcast', { event: 'game_join' }, (payload) => {
-      if (payload.payload && handlers.onJoin) {
-        handlers.onJoin(payload.payload);
-      }
-    })
-    .on('broadcast', { event: 'game_reaction' }, (payload) => {
-      if (payload.payload && handlers.onReaction) {
-        handlers.onReaction(payload.payload);
-      }
-    })
-    .on('broadcast', { event: 'game_sync' }, (payload) => {
-      if (payload.payload && handlers.onStateSync) {
-        handlers.onStateSync(payload.payload);
-      }
-    })
-    .subscribe((status) => {
-      if (status === 'SUBSCRIBED') {
-        console.log(`[Supabase Realtime] Connected to Tic-Tac-Toe Game Room: ${gameId}`);
+  return () => {
+    subscriptions.forEach((channel) => {
+      try {
+        client.removeChannel(channel);
+      } catch (err) {
+        console.warn('Error removing game channel:', err);
       }
     });
-
-  return () => {
-    try {
-      client.removeChannel(channel);
-    } catch (err) {
-      console.warn('Error removing game channel:', err);
-    }
   };
 };
 
 /**
- * Broadcasts a move to the Supabase game channel.
+ * Broadcasts a move across both 'game_room' and specific channels.
  */
 export const broadcastGameMove = async (
   gameId: string,
-  moveData: { index: number; player: 'X' | 'O'; nextTurn: 'X' | 'O' }
+  moveData: {
+    index: number;
+    player: 'X' | 'O';
+    nextTurn: 'X' | 'O';
+    board?: TicTacToeCell[];
+    scores?: { playerX: number; playerO: number; draws: number };
+    status?: TicTacToeGameState['status'];
+    winner?: 'X' | 'O' | 'draw' | null;
+    winningLine?: [number, number, number] | null;
+    senderId?: string;
+  }
 ) => {
   const client = getSupabaseClient();
   if (!client) return;
 
-  try {
-    const channel = client.channel(`game_tictactoe:${gameId}`);
-    await channel.send({
-      type: 'broadcast',
-      event: 'game_move',
-      payload: moveData,
-    });
-  } catch (err) {
-    console.warn('Failed to broadcast game move via Supabase:', err);
+  const payload = {
+    gameId,
+    ...moveData,
+    timestamp: Date.now(),
+  };
+
+  const channelNames = ['game_room', `game_room_${gameId}`, `game_tictactoe:${gameId}`];
+  for (const name of channelNames) {
+    try {
+      const channel = activeChannels.get(name) || client.channel(name);
+      await channel.send({
+        type: 'broadcast',
+        event: 'game_move',
+        payload,
+      });
+    } catch (err) {
+      console.warn(`Failed to broadcast move on ${name}:`, err);
+    }
   }
 };
 
 /**
  * Broadcasts a game rematch request.
  */
-export const broadcastGameRematch = async (gameId: string) => {
+export const broadcastGameRematch = async (gameId: string, senderId?: string) => {
   const client = getSupabaseClient();
   if (!client) return;
 
-  try {
-    const channel = client.channel(`game_tictactoe:${gameId}`);
-    await channel.send({
-      type: 'broadcast',
-      event: 'game_rematch',
-      payload: { timestamp: Date.now() },
-    });
-  } catch (err) {
-    console.warn('Failed to broadcast rematch:', err);
+  const payload = { gameId, senderId, timestamp: Date.now() };
+  const channelNames = ['game_room', `game_room_${gameId}`, `game_tictactoe:${gameId}`];
+  for (const name of channelNames) {
+    try {
+      const channel = activeChannels.get(name) || client.channel(name);
+      await channel.send({
+        type: 'broadcast',
+        event: 'game_rematch',
+        payload,
+      });
+    } catch (err) {
+      console.warn(`Failed to broadcast rematch on ${name}:`, err);
+    }
   }
 };
 
@@ -375,15 +444,19 @@ export const broadcastGameJoin = async (gameId: string, guest: GamePlayerInfo) =
   const client = getSupabaseClient();
   if (!client) return;
 
-  try {
-    const channel = client.channel(`game_tictactoe:${gameId}`);
-    await channel.send({
-      type: 'broadcast',
-      event: 'game_join',
-      payload: guest,
-    });
-  } catch (err) {
-    console.warn('Failed to broadcast join:', err);
+  const payload = { gameId, guest, timestamp: Date.now() };
+  const channelNames = ['game_room', `game_room_${gameId}`, `game_tictactoe:${gameId}`];
+  for (const name of channelNames) {
+    try {
+      const channel = activeChannels.get(name) || client.channel(name);
+      await channel.send({
+        type: 'broadcast',
+        event: 'game_join',
+        payload,
+      });
+    } catch (err) {
+      console.warn(`Failed to broadcast join on ${name}:`, err);
+    }
   }
 };
 
@@ -397,15 +470,19 @@ export const broadcastGameReaction = async (
   const client = getSupabaseClient();
   if (!client) return;
 
-  try {
-    const channel = client.channel(`game_tictactoe:${gameId}`);
-    await channel.send({
-      type: 'broadcast',
-      event: 'game_reaction',
-      payload: reaction,
-    });
-  } catch (err) {
-    console.warn('Failed to broadcast reaction:', err);
+  const payload = { gameId, ...reaction, timestamp: Date.now() };
+  const channelNames = ['game_room', `game_room_${gameId}`, `game_tictactoe:${gameId}`];
+  for (const name of channelNames) {
+    try {
+      const channel = activeChannels.get(name) || client.channel(name);
+      await channel.send({
+        type: 'broadcast',
+        event: 'game_reaction',
+        payload,
+      });
+    } catch (err) {
+      console.warn(`Failed to broadcast reaction on ${name}:`, err);
+    }
   }
 };
 
@@ -419,14 +496,18 @@ export const broadcastGameStateSync = async (
   const client = getSupabaseClient();
   if (!client) return;
 
-  try {
-    const channel = client.channel(`game_tictactoe:${gameId}`);
-    await channel.send({
-      type: 'broadcast',
-      event: 'game_sync',
-      payload: state,
-    });
-  } catch (err) {
-    console.warn('Failed to broadcast state sync:', err);
+  const payload = { gameId, state, timestamp: Date.now() };
+  const channelNames = ['game_room', `game_room_${gameId}`, `game_tictactoe:${gameId}`];
+  for (const name of channelNames) {
+    try {
+      const channel = activeChannels.get(name) || client.channel(name);
+      await channel.send({
+        type: 'broadcast',
+        event: 'game_sync',
+        payload,
+      });
+    } catch (err) {
+      console.warn(`Failed to broadcast state sync on ${name}:`, err);
+    }
   }
 };
