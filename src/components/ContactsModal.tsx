@@ -78,7 +78,8 @@ export const ContactsModal: React.FC<ContactsModalProps> = ({
 
   // Dynamic search on Supabase users table as user types any letter
   useEffect(() => {
-    if (!isOpen || !searchQuery.trim()) {
+    const cleanSearch = searchQuery.replace(/[@]/g, '').trim();
+    if (!isOpen || !cleanSearch) {
       setRemoteSearchResults([]);
       setIsSearchingRemote(false);
       return;
@@ -89,10 +90,10 @@ export const ContactsModal: React.FC<ContactsModalProps> = ({
 
     const timer = setTimeout(async () => {
       try {
-        const res = await supabaseSearchUsers(searchQuery);
+        const res = await supabaseSearchUsers(cleanSearch);
         if (isMounted && res.data) {
           const filtered = res.data.filter(
-            (u) => u.id !== currentUser.id && u.username.toLowerCase() !== currentUser.username.toLowerCase()
+            (u) => u.id !== currentUser.id && u.username.toLowerCase().replace(/[@]/g, '') !== currentUser.username.toLowerCase().replace(/[@]/g, '')
           );
           setRemoteSearchResults(filtered);
         }
@@ -160,19 +161,22 @@ export const ContactsModal: React.FC<ContactsModalProps> = ({
 
     // Search query filtering
     if (!searchQuery.trim()) return true;
-    const rawQ = searchQuery.trim().toLowerCase();
-    const cleanQ = rawQ.replace(/^@+/, '');
+    const cleanQ = searchQuery.replace(/[@]/g, '').trim().toLowerCase();
     const cName = (c.name || '').toLowerCase();
-    const cUser = (c.username || '').toLowerCase();
-    const cUserClean = cUser.replace(/^@+/, '');
+    const cUser = (c.username || '').toLowerCase().replace(/[@]/g, '');
+    const cDisplayName = (c.displayName || '').toLowerCase();
+    const cFullName = (c.fullName || '').toLowerCase();
+    const cEmail = (c.email || '').toLowerCase();
     const cCountry = (c.country || '').toLowerCase();
     const cPhone = (c.phoneNumber || '').toLowerCase();
     const cBio = (c.bio || '').toLowerCase();
 
     return (
       cName.includes(cleanQ) ||
-      cUser.includes(rawQ) ||
-      cUserClean.includes(cleanQ) ||
+      cUser.includes(cleanQ) ||
+      cDisplayName.includes(cleanQ) ||
+      cFullName.includes(cleanQ) ||
+      cEmail.includes(cleanQ) ||
       cCountry.includes(cleanQ) ||
       cPhone.includes(cleanQ) ||
       cBio.includes(cleanQ)

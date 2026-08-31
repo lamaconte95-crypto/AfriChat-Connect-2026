@@ -195,15 +195,19 @@ export const supabaseGetProfile = async (userId: string) => {
 };
 
 export const profileToContact = (p: any): Contact => {
-  const username = p.username || p.name?.toLowerCase().replace(/\s+/g, '_') || 'membre';
-  const formattedUsername = username.startsWith('@') ? username : `@${username}`;
+  const rawUsername = p.username || p.display_name || p.name?.toLowerCase().replace(/\s+/g, '_') || 'membre';
+  const cleanUsername = rawUsername.replace(/[@]/g, '');
+  const formattedUsername = `@${cleanUsername}`;
   const avatarUrl = p.avatar_url || p.photo_url || p.avatar || p.photoURL || p.picture || p.profile_picture || p.image || '';
 
   return {
     id: p.id || `user_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
     userId: p.id || '',
-    name: p.name || p.full_name || p.username || 'Membre AfriChat',
+    name: p.name || p.full_name || p.display_name || cleanUsername || 'Membre AfriChat',
     username: formattedUsername,
+    displayName: p.display_name || p.displayName || p.name || '',
+    fullName: p.full_name || p.fullName || p.name || '',
+    email: p.email || '',
     avatar: avatarUrl,
     country: p.country || "Côte d'Ivoire",
     flag: p.flag || '🇨🇮',
@@ -378,11 +382,14 @@ export const supabaseSearchUsers = async (query: string): Promise<{
   simulated: boolean;
 }> => {
   const rawQuery = (query || '').trim();
-  if (!rawQuery) return { data: [], error: null, simulated: true };
+  const cleanQuery = rawQuery.replace(/[@]/g, '').trim();
+  
+  // If query is empty, return the complete list of all registered community members
+  if (!cleanQuery) {
+    return await supabaseFetchAllProfiles();
+  }
 
-  const cleanQuery = rawQuery.replace(/^@+/, '').trim();
   const lowerQ = cleanQuery.toLowerCase();
-  const rawLowerQ = rawQuery.toLowerCase();
 
   const operation = async () => {
     try {
@@ -390,15 +397,15 @@ export const supabaseSearchUsers = async (query: string): Promise<{
       const client = getSupabaseClient();
 
       if (client && cleanQuery) {
-        // 1. Search in 'users' table with case-insensitive ilike
+        // 1. Search in 'users' table with case-insensitive ilike across all fields (username, display_name, email, full_name, etc.)
         try {
           const { data: usersData } = await client
             .from('users')
             .select('*')
             .or(
-              `name.ilike.%${cleanQuery}%,username.ilike.%${cleanQuery}%,username.ilike.@%${cleanQuery}%,full_name.ilike.%${cleanQuery}%,country.ilike.%${cleanQuery}%,phone_number.ilike.%${cleanQuery}%,email.ilike.%${cleanQuery}%`
+              `username.ilike.%${cleanQuery}%,name.ilike.%${cleanQuery}%,display_name.ilike.%${cleanQuery}%,full_name.ilike.%${cleanQuery}%,email.ilike.%${cleanQuery}%,phone_number.ilike.%${cleanQuery}%,country.ilike.%${cleanQuery}%`
             )
-            .limit(100);
+            .limit(150);
 
           if (usersData && usersData.length > 0) {
             usersData.forEach((u) => {
@@ -411,15 +418,15 @@ export const supabaseSearchUsers = async (query: string): Promise<{
           console.warn('[Supabase search users notice]:', e);
         }
 
-        // 2. Search in 'profiles' table with case-insensitive ilike
+        // 2. Search in 'profiles' table with case-insensitive ilike across all fields
         try {
           const { data: profilesData } = await client
             .from('profiles')
             .select('*')
             .or(
-              `name.ilike.%${cleanQuery}%,username.ilike.%${cleanQuery}%,username.ilike.@%${cleanQuery}%,full_name.ilike.%${cleanQuery}%,country.ilike.%${cleanQuery}%,phone_number.ilike.%${cleanQuery}%,email.ilike.%${cleanQuery}%`
+              `username.ilike.%${cleanQuery}%,name.ilike.%${cleanQuery}%,display_name.ilike.%${cleanQuery}%,full_name.ilike.%${cleanQuery}%,email.ilike.%${cleanQuery}%,phone_number.ilike.%${cleanQuery}%,country.ilike.%${cleanQuery}%`
             )
-            .limit(100);
+            .limit(150);
 
           if (profilesData && profilesData.length > 0) {
             profilesData.forEach((p) => {
@@ -436,41 +443,46 @@ export const supabaseSearchUsers = async (query: string): Promise<{
         }
       }
 
-      // 3. Search and merge Firebase Firestore registered users for 100% account visibility
+      // 3. Search and merge Firebase Firestore registered users (matching username, display_name, email, full_name)
       try {
         const firestoreUsers = await getAllRegisteredUsersFromFirestore();
         if (firestoreUsers && firestoreUsers.length > 0) {
-          firestoreUsers.forEach((fbUser) => {
+          firestoreUsers.forEach((fbUser: any) => {
+            const fbUsername = (fbUser.username || '').toLowerCase().replace(/[@]/g, '');
             const fbName = (fbUser.name || '').toLowerCase();
-            const fbUsername = (fbUser.username || '').toLowerCase();
-            const fbUserClean = fbUsername.replace(/^@+/, '');
-            const fbCountry = (fbUser.country || '').toLowerCase();
-            const fbPhone = (fbUser.phoneNumber || '').toLowerCase();
+            const fbDisplayName = (fbUser.displayName || fbUser.display_name || '').toLowerCase();
+            const fbFullName = (fbUser.fullName || fbUser.full_name || '').toLowerCase();
             const fbEmail = (fbUser.email || '').toLowerCase();
+            const fbCountry = (fbUser.country || '').toLowerCase();
+            const fbPhone = (fbUser.phoneNumber || fbUser.phone_number || '').toLowerCase();
             const fbBio = (fbUser.bio || '').toLowerCase();
 
             const isMatch =
+              fbUsername.includes(lowerQ) ||
               fbName.includes(lowerQ) ||
-              fbUserClean.includes(lowerQ) ||
-              fbUsername.includes(rawLowerQ) ||
+              fbDisplayName.includes(lowerQ) ||
+              fbFullName.includes(lowerQ) ||
+              fbEmail.includes(lowerQ) ||
               fbCountry.includes(lowerQ) ||
               fbPhone.includes(lowerQ) ||
-              fbEmail.includes(lowerQ) ||
               fbBio.includes(lowerQ);
 
             if (isMatch) {
               const contact = profileToContact({
                 id: fbUser.id,
-                name: fbUser.name,
+                name: fbUser.name || fbUser.displayName || fbUser.fullName,
                 username: fbUser.username,
+                display_name: fbUser.displayName || fbUser.display_name,
+                full_name: fbUser.fullName || fbUser.full_name,
+                email: fbUser.email,
                 avatar: fbUser.avatar,
-                avatar_url: fbUser.avatar,
+                avatar_url: fbUser.avatar || fbUser.photo_url || fbUser.photoURL,
                 country: fbUser.country,
                 flag: fbUser.flag,
-                phone_number: fbUser.phoneNumber,
+                phone_number: fbUser.phoneNumber || fbUser.phone_number,
                 bio: fbUser.bio,
-                is_vip: fbUser.isVIP,
-                is_verified: fbUser.isVerified,
+                is_vip: fbUser.isVIP || fbUser.is_vip,
+                is_verified: fbUser.isVerified || fbUser.is_verified,
               });
               const key = contact.id || contact.username.toLowerCase();
               if (!searchMap.has(key)) {
@@ -487,18 +499,20 @@ export const supabaseSearchUsers = async (query: string): Promise<{
       const results = Array.from(searchMap.values()).sort((a, b) => {
         const aName = (a.name || '').toLowerCase();
         const bName = (b.name || '').toLowerCase();
-        const aUser = (a.username || '').toLowerCase().replace(/^@+/, '');
-        const bUser = (b.username || '').toLowerCase().replace(/^@+/, '');
+        const aUser = (a.username || '').toLowerCase().replace(/[@]/g, '');
+        const bUser = (b.username || '').toLowerCase().replace(/[@]/g, '');
+        const aDisplay = (a.displayName || '').toLowerCase();
+        const bDisplay = (b.displayName || '').toLowerCase();
 
-        // Exact match on username or name
-        const aExact = aUser === lowerQ || aName === lowerQ || (a.username || '').toLowerCase() === rawLowerQ;
-        const bExact = bUser === lowerQ || bName === lowerQ || (b.username || '').toLowerCase() === rawLowerQ;
+        // Exact match on username, display name, or full name
+        const aExact = aUser === lowerQ || aName === lowerQ || aDisplay === lowerQ;
+        const bExact = bUser === lowerQ || bName === lowerQ || bDisplay === lowerQ;
         if (aExact && !bExact) return -1;
         if (!aExact && bExact) return 1;
 
-        // Prefix match on username or name
-        const aStartsWith = aUser.startsWith(lowerQ) || aName.startsWith(lowerQ);
-        const bStartsWith = bUser.startsWith(lowerQ) || bName.startsWith(lowerQ);
+        // Prefix match on username, display name, or name
+        const aStartsWith = aUser.startsWith(lowerQ) || aName.startsWith(lowerQ) || aDisplay.startsWith(lowerQ);
+        const bStartsWith = bUser.startsWith(lowerQ) || bName.startsWith(lowerQ) || bDisplay.startsWith(lowerQ);
         if (aStartsWith && !bStartsWith) return -1;
         if (!aStartsWith && bStartsWith) return 1;
 
@@ -512,7 +526,7 @@ export const supabaseSearchUsers = async (query: string): Promise<{
     }
   };
 
-  return await withTimeout(operation(), 3500, { data: [], error: null, simulated: false });
+  return await withTimeout(operation(), 4000, { data: [], error: null, simulated: false });
 };
 
 export const supabaseSendInviteNotification = async (

@@ -325,6 +325,9 @@ export interface Contact {
   userId: string;
   name: string;
   username: string;
+  displayName?: string;
+  fullName?: string;
+  email?: string;
   avatar: string;
   flag: string;
   country: string;

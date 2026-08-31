@@ -124,9 +124,10 @@ export const FriendsManagerModal: React.FC<FriendsManagerModalProps> = ({
     };
   }, [isOpen, currentUser.id, currentUser.username]);
 
-  // Supabase live search debounce (instant single letter search)
+  // Supabase live search debounce (instant single letter search with @ stripping)
   useEffect(() => {
-    if (!searchQuery.trim()) {
+    const cleanSearch = searchQuery.replace(/[@]/g, '').trim();
+    if (!cleanSearch) {
       setSupabaseSearchResults([]);
       setIsSearchingSupabase(false);
       return;
@@ -137,11 +138,11 @@ export const FriendsManagerModal: React.FC<FriendsManagerModalProps> = ({
 
     const timer = setTimeout(async () => {
       try {
-        const res = await supabaseSearchUsers(searchQuery);
+        const res = await supabaseSearchUsers(cleanSearch);
         if (isMounted && res.data) {
           // Filter out current user
           const filtered = res.data.filter(
-            (u) => u.id !== currentUser.id && u.username.toLowerCase() !== currentUser.username.toLowerCase()
+            (u) => u.id !== currentUser.id && u.username.toLowerCase().replace(/[@]/g, '') !== currentUser.username.toLowerCase().replace(/[@]/g, '')
           );
           setSupabaseSearchResults(filtered);
         }
@@ -300,28 +301,25 @@ export const FriendsManagerModal: React.FC<FriendsManagerModalProps> = ({
   };
 
   // Case-insensitive and @-agnostic contact search matching
-  const rawQ = searchQuery.trim().toLowerCase();
-  const cleanQ = rawQ.replace(/^@+/, '');
+  const cleanQ = searchQuery.replace(/[@]/g, '').trim().toLowerCase();
 
-  const matchesContactSearch = (c: {
-    name: string;
-    username: string;
-    country?: string;
-    bio?: string;
-    phoneNumber?: string;
-  }) => {
+  const matchesContactSearch = (c: any) => {
     if (!cleanQ) return true;
     const name = (c.name || '').toLowerCase();
-    const user = (c.username || '').toLowerCase();
-    const userClean = user.replace(/^@+/, '');
+    const user = (c.username || '').toLowerCase().replace(/[@]/g, '');
+    const displayName = (c.displayName || c.display_name || '').toLowerCase();
+    const fullName = (c.fullName || c.full_name || '').toLowerCase();
+    const email = (c.email || '').toLowerCase();
     const country = (c.country || '').toLowerCase();
     const bio = (c.bio || '').toLowerCase();
-    const phone = (c.phoneNumber || '').toLowerCase();
+    const phone = (c.phoneNumber || c.phone_number || '').toLowerCase();
 
     return (
       name.includes(cleanQ) ||
-      user.includes(rawQ) ||
-      userClean.includes(cleanQ) ||
+      user.includes(cleanQ) ||
+      displayName.includes(cleanQ) ||
+      fullName.includes(cleanQ) ||
+      email.includes(cleanQ) ||
       country.includes(cleanQ) ||
       bio.includes(cleanQ) ||
       phone.includes(cleanQ)
@@ -332,16 +330,18 @@ export const FriendsManagerModal: React.FC<FriendsManagerModalProps> = ({
     if (!cleanQ) return 0;
     const aName = (a.name || '').toLowerCase();
     const bName = (b.name || '').toLowerCase();
-    const aUser = (a.username || '').toLowerCase().replace(/^@+/, '');
-    const bUser = (b.username || '').toLowerCase().replace(/^@+/, '');
+    const aUser = (a.username || '').toLowerCase().replace(/[@]/g, '');
+    const bUser = (b.username || '').toLowerCase().replace(/[@]/g, '');
+    const aDisplay = (a.displayName || a.display_name || '').toLowerCase();
+    const bDisplay = (b.displayName || b.display_name || '').toLowerCase();
 
-    const aExact = aUser === cleanQ || aName === cleanQ;
-    const bExact = bUser === cleanQ || bName === cleanQ;
+    const aExact = aUser === cleanQ || aName === cleanQ || aDisplay === cleanQ;
+    const bExact = bUser === cleanQ || bName === cleanQ || bDisplay === cleanQ;
     if (aExact && !bExact) return -1;
     if (!aExact && bExact) return 1;
 
-    const aStartsWith = aUser.startsWith(cleanQ) || aName.startsWith(cleanQ);
-    const bStartsWith = bUser.startsWith(cleanQ) || bName.startsWith(cleanQ);
+    const aStartsWith = aUser.startsWith(cleanQ) || aName.startsWith(cleanQ) || aDisplay.startsWith(cleanQ);
+    const bStartsWith = bUser.startsWith(cleanQ) || bName.startsWith(cleanQ) || bDisplay.startsWith(cleanQ);
     if (aStartsWith && !bStartsWith) return -1;
     if (!aStartsWith && bStartsWith) return 1;
 
@@ -349,9 +349,19 @@ export const FriendsManagerModal: React.FC<FriendsManagerModalProps> = ({
   };
 
   // Filtered lists based on search query
-  const filteredOnline = onlineFriends.filter(matchesContactSearch).sort(sortRanked);
-  const filteredAllFriends = allFriends.filter(matchesContactSearch).sort(sortRanked);
-  const filteredSuggested = allSuggestedMembers.filter(matchesContactSearch).sort(sortRanked);
+  const matchedOnline = onlineFriends.filter(matchesContactSearch).sort(sortRanked);
+  const matchedAllFriends = allFriends.filter(matchesContactSearch).sort(sortRanked);
+  const matchedSuggested = allSuggestedMembers.filter(matchesContactSearch).sort(sortRanked);
+
+  // If search query is empty OR if search returns no specific results, default to showing the full registered community list
+  const isFallbackSuggested = Boolean(cleanQ && matchedSuggested.length === 0);
+  const filteredSuggested = isFallbackSuggested ? allSuggestedMembers : matchedSuggested;
+
+  const isFallbackOnline = Boolean(cleanQ && matchedOnline.length === 0);
+  const filteredOnline = isFallbackOnline ? onlineFriends : matchedOnline;
+
+  const isFallbackAllFriends = Boolean(cleanQ && matchedAllFriends.length === 0);
+  const filteredAllFriends = isFallbackAllFriends ? allFriends : matchedAllFriends;
 
   return (
     <AnimatePresence>
@@ -643,8 +653,17 @@ export const FriendsManagerModal: React.FC<FriendsManagerModalProps> = ({
               <div className="space-y-3">
                 <div className="flex items-center justify-between text-xs text-stone-400">
                   <span>Membres suggérés et communauté AfriChat</span>
-                  <span className="text-amber-400 font-bold">{filteredSuggested.length} suggérés</span>
+                  <span className="text-amber-400 font-bold">{filteredSuggested.length} membres disponibles</span>
                 </div>
+
+                {isFallbackSuggested && (
+                  <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center space-x-2.5 text-xs text-amber-300">
+                    <Users className="w-4 h-4 shrink-0 text-amber-400" />
+                    <span>
+                      Aucun profil exact trouvé pour <strong>« @{cleanQ} »</strong>. Affichage par défaut de l'ensemble des membres enregistrés dans la communauté :
+                    </span>
+                  </div>
+                )}
 
                 {filteredSuggested.length === 0 ? (
                   <div className="p-8 text-center rounded-3xl bg-stone-950/60 border border-stone-800 space-y-2">
