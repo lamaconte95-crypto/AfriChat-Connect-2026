@@ -230,10 +230,13 @@ export const FriendsManagerModal: React.FC<FriendsManagerModalProps> = ({
       })),
   ];
 
-  // Deduplicate by username
+  // Deduplicate by normalized username
   const uniqueSuggestedMap = new Map<string, typeof dynamicSuggested[0]>();
   dynamicSuggested.forEach((m) => {
-    uniqueSuggestedMap.set(m.username.toLowerCase(), m);
+    const key = (m.username || '').toLowerCase().replace(/[@]/g, '');
+    if (key && !uniqueSuggestedMap.has(key)) {
+      uniqueSuggestedMap.set(key, m);
+    }
   });
   const allSuggestedMembers = Array.from(uniqueSuggestedMap.values());
 
