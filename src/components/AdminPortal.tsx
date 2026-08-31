@@ -1149,9 +1149,9 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                   </div>
 
                   <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
-                    {transactions.slice(0, 5).map((tx) => (
+                    {transactions.slice(0, 5).map((tx, idx) => (
                       <div
-                        key={tx.id}
+                        key={`admin-tx-${tx.id || idx}_${idx}`}
                         className="p-3 rounded-2xl bg-stone-950/70 border border-stone-800 flex items-center justify-between text-xs"
                       >
                         <div className="flex items-center space-x-3">
@@ -1257,8 +1257,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-stone-800/60">
-                      {filteredUsers.map((contact) => (
-                        <tr key={contact.id} className="hover:bg-stone-800/40 transition-colors">
+                      {filteredUsers.map((contact, idx) => (
+                        <tr key={`admin-user-${contact.id || contact.userId || contact.username || idx}_${idx}`} className="hover:bg-stone-800/40 transition-colors">
                           {/* User Avatar + Name */}
                           <td className="p-4">
                             <div className="flex items-center space-x-3">
@@ -1389,9 +1389,9 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
 
               {/* VIP Plans Grid */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {vipPlans.map((plan) => (
+                {vipPlans.map((plan, idx) => (
                   <div
-                    key={plan.id}
+                    key={`vip-plan-${plan.id || idx}_${idx}`}
                     className="p-5 rounded-3xl bg-stone-900/90 border border-stone-800 flex flex-col justify-between relative overflow-hidden shadow-xl space-y-4"
                   >
                     {plan.badge && (
@@ -1494,8 +1494,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-stone-800/60">
-                      {filteredSalons.map((salon) => (
-                        <tr key={salon.id} className="hover:bg-stone-800/40 transition-colors">
+                      {filteredSalons.map((salon, idx) => (
+                        <tr key={`admin-salon-${salon.id || idx}_${idx}`} className="hover:bg-stone-800/40 transition-colors">
                           <td className="p-4">
                             <div className="flex items-center space-x-3">
                               <UserAvatar
@@ -1609,8 +1609,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
               </div>
 
               <div className="bg-stone-900/90 rounded-3xl border border-stone-800 divide-y divide-stone-800/80 overflow-hidden shadow-xl">
-                {auditLogs.map((log) => (
-                  <div key={log.id} className="p-4 flex items-center justify-between text-xs hover:bg-stone-800/30 transition-colors">
+                {auditLogs.map((log, idx) => (
+                  <div key={`audit-log-${log.id || idx}_${idx}`} className="p-4 flex items-center justify-between text-xs hover:bg-stone-800/30 transition-colors">
                     <div className="space-y-1">
                       <div className="flex items-center space-x-2">
                         <span
@@ -1876,8 +1876,8 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                   </div>
                 ) : (
                   <div className="bg-stone-950 rounded-2xl border border-stone-800 divide-y divide-stone-800/80 overflow-hidden shadow-inner">
-                    {webhookLogs.map((log) => (
-                      <div key={log.id} className="p-4 space-y-2 hover:bg-stone-900/50 transition-colors text-xs">
+                    {webhookLogs.map((log, idx) => (
+                      <div key={`webhook-log-${log.id || idx}_${idx}`} className="p-4 space-y-2 hover:bg-stone-900/50 transition-colors text-xs">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-2">
                             <span
@@ -1953,9 +1953,9 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
               <div>
                 <label className="text-xs font-bold text-stone-300">Montant en FCFA :</label>
                 <div className="grid grid-cols-3 gap-2 mt-1.5">
-                  {[2000, 5000, 10000, 25000, 50000, 100000].map((amt) => (
+                  {[2000, 5000, 10000, 25000, 50000, 100000].map((amt, idx) => (
                     <button
-                      key={amt}
+                      key={`credit-amt-${amt}_${idx}`}
                       type="button"
                       onClick={() => setCreditAmount(amt)}
                       className={`py-2 rounded-xl text-xs font-bold cursor-pointer transition-all ${

@@ -222,8 +222,8 @@ export const WalletView: React.FC<WalletViewProps> = ({
           Réseaux Mobile Money Partenaires
         </span>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-          {MOBILE_MONEY_OPERATORS.slice(0, 4).map((op) => (
-            <div key={op.id} className="p-2.5 rounded-xl bg-stone-800/60 border border-stone-800 flex items-center space-x-2.5">
+          {MOBILE_MONEY_OPERATORS.slice(0, 4).map((op, idx) => (
+            <div key={`op-${op.id}_${idx}`} className="p-2.5 rounded-xl bg-stone-800/60 border border-stone-800 flex items-center space-x-2.5">
               <div
                 className="w-7 h-7 rounded-lg flex items-center justify-center font-black text-[10px]"
                 style={{
@@ -280,12 +280,12 @@ export const WalletView: React.FC<WalletViewProps> = ({
 
         {/* Transactions List */}
         <div className="space-y-2">
-          {filteredTransactions.map((tx) => {
+          {filteredTransactions.map((tx, idx) => {
             const isNegative = tx.type === 'payout';
 
             return (
               <div
-                key={tx.id}
+                key={`tx-${tx.id || idx}_${idx}`}
                 id={`transaction-card-${tx.id}`}
                 onClick={() => onOpenReceipt && onOpenReceipt(tx)}
                 className="p-4 rounded-2xl bg-stone-900 border border-stone-800/80 flex items-center justify-between hover:border-amber-500/50 transition-all cursor-pointer group"
@@ -387,10 +387,10 @@ export const WalletView: React.FC<WalletViewProps> = ({
                 <div>
                   <label className="block text-xs text-stone-400 mb-1">Réseau de retrait</label>
                   <div className="grid grid-cols-2 gap-2">
-                    {MOBILE_MONEY_OPERATORS.map((op) => (
+                    {MOBILE_MONEY_OPERATORS.map((op, idx) => (
                       <button
                         type="button"
-                        key={op.id}
+                        key={`modal-op-${op.id}_${idx}`}
                         onClick={() => setPayoutProvider(op.id)}
                         className={`p-3 rounded-xl border text-xs font-bold flex items-center space-x-2 ${
                           payoutProvider === op.id

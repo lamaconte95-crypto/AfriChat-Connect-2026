@@ -566,6 +566,7 @@ export const TicTacToeGameModal: React.FC<TicTacToeGameModalProps> = ({
         <AnimatePresence>
           {activeReaction && (
             <motion.div
+              key="active-reaction-popover"
               initial={{ opacity: 0, y: 20, scale: 0.7 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -20, scale: 0.8 }}

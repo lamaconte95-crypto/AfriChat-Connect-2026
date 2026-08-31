@@ -284,9 +284,9 @@ export const CallModal: React.FC<CallModalProps> = ({
 
           {/* FLOATING REACTIONS OVERLAY */}
           <div className="absolute inset-0 pointer-events-none z-30 overflow-hidden">
-            {floatingReactions.map((r) => (
+            {floatingReactions.map((r, idx) => (
               <motion.div
-                key={r.id}
+                key={`call-reaction-${r.id || idx}_${idx}`}
                 initial={{ opacity: 1, y: 520, x: `${r.x}%`, scale: 0.5 }}
                 animate={{ opacity: 0, y: 80, scale: 2 }}
                 transition={{ duration: 1.8, ease: 'easeOut' }}
@@ -430,7 +430,7 @@ export const CallModal: React.FC<CallModalProps> = ({
                   <div className="flex items-center justify-center space-x-1.5 h-10 py-2">
                     {[40, 75, 90, 60, 100, 45, 80, 65, 95, 50, 70, 85].map((height, i) => (
                       <motion.div
-                        key={i}
+                        key={`call-wave-${i}`}
                         animate={isMuted ? { height: '4px' } : { height: [`${Math.max(8, height * 0.2)}px`, `${height * 0.35}px`, `${Math.max(8, height * 0.2)}px`] }}
                         transition={{ duration: 0.6 + (i % 3) * 0.2, repeat: Infinity, ease: 'easeInOut' }}
                         className="w-1 rounded-full bg-gradient-to-t from-amber-500 to-orange-400"
@@ -445,9 +445,9 @@ export const CallModal: React.FC<CallModalProps> = ({
           {/* FLOATING QUICK REACTIONS TRAY */}
           {callStatus === 'connected' && (
             <div className="absolute bottom-24 sm:bottom-22 left-0 right-0 z-40 px-4 py-1 flex items-center justify-center space-x-2.5">
-              {['❤️', '🔥', '👏', '🇨🇮', '🇸🇳', '🎉'].map((emoji) => (
+              {['❤️', '🔥', '👏', '🇨🇮', '🇸🇳', '🎉'].map((emoji, idx) => (
                 <button
-                  key={emoji}
+                  key={`call-emoji-${emoji}_${idx}`}
                   onClick={() => triggerReaction(emoji)}
                   className="w-9 h-9 rounded-full bg-stone-900/80 hover:bg-stone-800 border border-stone-700/80 flex items-center justify-center text-lg hover:scale-125 transition-transform active:scale-90 shadow-md cursor-pointer backdrop-blur-md"
                 >

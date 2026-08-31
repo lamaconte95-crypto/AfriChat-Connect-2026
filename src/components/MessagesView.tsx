@@ -383,9 +383,9 @@ export const MessagesView: React.FC<MessagesViewProps> = ({
                   </p>
                 </div>
               ) : (
-                filteredContacts.map((contact) => (
+                filteredContacts.map((contact, idx) => (
                   <div
-                    key={contact.id}
+                    key={`contact-item-${contact.id || contact.userId || contact.username || idx}_${idx}`}
                     className={`p-2.5 rounded-2xl flex items-center justify-between hover:bg-stone-800/60 transition-colors ${
                       contact.isBlocked ? 'opacity-60 bg-rose-950/20' : ''
                     }`}
@@ -453,13 +453,13 @@ export const MessagesView: React.FC<MessagesViewProps> = ({
                   </p>
                 </div>
               ) : (
-                filteredConversations.map((conv) => {
+                filteredConversations.map((conv, idx) => {
                   const isSelected = selectedChatId === conv.id;
                   const isLocked = conv.isVIPRoom && !conv.isUnlocked;
 
                   return (
                     <button
-                      key={conv.id}
+                      key={`conv-${conv.id || idx}_${idx}`}
                       id={`conversation-item-${conv.id}`}
                       onClick={() => setSelectedChatId(conv.id)}
                       className={`w-full p-3.5 flex items-center space-x-3 text-left transition-colors cursor-pointer ${
@@ -897,12 +897,12 @@ export const MessagesView: React.FC<MessagesViewProps> = ({
             </div>
           ) : (
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
-              {activeChat.messages.map((msg) => {
+              {activeChat.messages.map((msg, idx) => {
                 const isMe = msg.senderId === currentUser.id;
 
                 return (
                   <motion.div
-                    key={msg.id}
+                    key={`msg-${msg.id || idx}_${idx}`}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}

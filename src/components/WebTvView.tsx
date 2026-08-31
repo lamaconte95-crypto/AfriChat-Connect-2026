@@ -452,9 +452,9 @@ export const WebTvView: React.FC<WebTvViewProps> = ({
 
               {/* Floating Reaction Animation */}
               <div className="absolute inset-0 pointer-events-none overflow-hidden z-20">
-                {floatingEmojis.map((e) => (
+                {floatingEmojis.map((e, idx) => (
                   <motion.div
-                    key={e.id}
+                    key={`floating-emoji-${e.id || idx}_${idx}`}
                     initial={{ opacity: 1, y: 150, scale: 0.8 }}
                     animate={{ opacity: 0, y: -50, scale: 1.5 }}
                     transition={{ duration: 1.8, ease: 'easeOut' }}
@@ -604,9 +604,9 @@ export const WebTvView: React.FC<WebTvViewProps> = ({
 
           {/* Messages list */}
           <div className="flex-1 overflow-y-auto py-2.5 space-y-2.5 pr-1">
-            {chatMessages.map((msg) => (
+            {chatMessages.map((msg, idx) => (
               <div
-                key={msg.id}
+                key={`chat-msg-${msg.id || idx}_${idx}`}
                 className={`p-2 rounded-2xl text-xs ${
                   msg.isTip
                     ? 'bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/40 text-amber-200'
@@ -634,9 +634,9 @@ export const WebTvView: React.FC<WebTvViewProps> = ({
 
           {/* Quick Reaction Bar */}
           <div className="py-2 flex items-center justify-around border-t border-stone-800/80 bg-stone-950/40 rounded-xl mb-2">
-            {['🔥', '👏', '❤️', '👑', '💯'].map((emoji) => (
+            {['🔥', '👏', '❤️', '👑', '💯'].map((emoji, idx) => (
               <button
-                key={emoji}
+                key={`webtv-quick-emoji-${emoji}_${idx}`}
                 type="button"
                 onClick={() => triggerEmoji(emoji)}
                 className="text-lg hover:scale-125 active:scale-90 transition-transform cursor-pointer"
@@ -679,13 +679,13 @@ export const WebTvView: React.FC<WebTvViewProps> = ({
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
-          {sortedChannels.map((channel) => {
+          {sortedChannels.map((channel, idx) => {
             const isCurrent = channel.id === activeChannel.id;
             const parsed = parseStreamUrl(channel.videoUrl);
 
             return (
               <div
-                key={channel.id}
+                key={`webtv-channel-${channel.id || idx}_${idx}`}
                 id={`channel-card-${channel.id}`}
                 onClick={() => {
                   setActiveChannelId(channel.id);

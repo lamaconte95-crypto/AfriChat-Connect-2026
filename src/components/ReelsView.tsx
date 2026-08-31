@@ -422,8 +422,8 @@ export const ReelsView: React.FC<ReelsViewProps> = ({
             {/* Comments List */}
             <div className="flex-1 overflow-y-auto py-3 space-y-3">
               {currentReel.comments && currentReel.comments.length > 0 ? (
-                currentReel.comments.map((c) => (
-                  <div key={c.id} className="flex items-start space-x-2.5 text-xs">
+                currentReel.comments.map((c, idx) => (
+                  <div key={`reel-comment-${c.id || idx}_${idx}`} className="flex items-start space-x-2.5 text-xs">
                     <UserAvatar
                       name={c.userName}
                       avatar={c.userAvatar}

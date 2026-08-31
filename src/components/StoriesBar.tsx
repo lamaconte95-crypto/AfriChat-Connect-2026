@@ -48,10 +48,10 @@ export const StoriesBar: React.FC<StoriesBarProps> = ({
         </button>
 
         {/* Stories list */}
-        {stories.map((story) => (
+        {stories.map((story, idx) => (
           <button
             id={`story-item-${story.id}`}
-            key={story.id}
+            key={`story-${story.id || idx}_${idx}`}
             onClick={() => onOpenStory(story)}
             className="flex flex-col items-center space-y-1.5 focus:outline-none group text-center cursor-pointer"
           >

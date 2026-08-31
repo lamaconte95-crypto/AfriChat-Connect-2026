@@ -477,9 +477,9 @@ export const ContactsModal: React.FC<ContactsModalProps> = ({
                   </div>
                 ) : (
                   <div className="divide-y divide-stone-800/60 rounded-2xl bg-stone-950/50 border border-stone-800/80 overflow-hidden">
-                    {filteredContacts.map((contact) => (
+                    {filteredContacts.map((contact, idx) => (
                       <div
-                        key={contact.id}
+                        key={`contact-${contact.id || contact.userId || contact.username || idx}_${idx}`}
                         className="p-3.5 flex items-center justify-between hover:bg-stone-800/40 transition-colors"
                       >
                         {/* Avatar & Info */}

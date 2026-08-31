@@ -268,9 +268,9 @@ export const FeedView: React.FC<FeedViewProps> = ({
               <p className="text-xs text-stone-400 py-1 text-center">Aucun membre enregistré ne correspond à "{searchQuery}".</p>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto">
-                {matchedUsers.map((user) => (
+                {matchedUsers.map((user, idx) => (
                   <div
-                    key={user.id}
+                    key={`matched-user-${user.id || user.userId || user.username || idx}_${idx}`}
                     className="p-2 rounded-xl bg-stone-800/80 hover:bg-stone-800 border border-stone-700/60 flex items-center justify-between transition-colors"
                   >
                     <div
@@ -363,9 +363,9 @@ export const FeedView: React.FC<FeedViewProps> = ({
               Aucun direct en cours • Soyez le premier à diffuser !
             </div>
           ) : (
-            liveStreams.map((stream) => (
+            liveStreams.map((stream, idx) => (
               <button
-                key={stream.id}
+                key={`live-stream-${stream.id || idx}_${idx}`}
                 onClick={() => onOpenLiveSession?.(stream)}
                 className="flex flex-col items-center space-y-1 shrink-0 group cursor-pointer"
               >
@@ -565,7 +565,7 @@ export const FeedView: React.FC<FeedViewProps> = ({
             const sponsoredAd = ads.find((a) => a.placement === 'sponsored_post') || ads[0];
 
             return (
-              <React.Fragment key={post.id}>
+              <React.Fragment key={`post-frag-${post.id || index}_${index}`}>
                 <motion.article
                   id={`post-card-${post.id}`}
                   initial={{ opacity: 0, y: 15 }}
@@ -738,7 +738,7 @@ export const FeedView: React.FC<FeedViewProps> = ({
                     {post.tags && post.tags.length > 0 && (
                       <div className="flex flex-wrap gap-1.5 mt-2">
                         {post.tags.map((tag, idx) => (
-                          <span key={idx} className="text-xs text-amber-400/90 font-medium hover:underline cursor-pointer">
+                          <span key={`tag-${tag}_${idx}`} className="text-xs text-amber-400/90 font-medium hover:underline cursor-pointer">
                             {tag}
                           </span>
                         ))}
@@ -887,8 +887,8 @@ export const FeedView: React.FC<FeedViewProps> = ({
                       {/* Latest Comments Preview */}
                       {post.comments && post.comments.length > 0 && (
                         <div className="space-y-2">
-                          {post.comments.slice(-2).map((c) => (
-                            <div key={c.id} className="flex items-start space-x-2.5 text-xs">
+                          {post.comments.slice(-2).map((c, idx) => (
+                            <div key={`comment-${c.id || idx}_${idx}`} className="flex items-start space-x-2.5 text-xs">
                               <UserAvatar
                                 name={c.userName}
                                 avatar={c.userAvatar}

@@ -560,9 +560,9 @@ export const FriendsManagerModal: React.FC<FriendsManagerModalProps> = ({
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    {filteredOnline.map((contact) => (
+                    {filteredOnline.map((contact, idx) => (
                       <div
-                        key={contact.id}
+                        key={`online-${contact.id || contact.userId || contact.username || idx}_${idx}`}
                         id={`online-friend-${contact.id}`}
                         className="p-3 rounded-2xl bg-stone-950/70 border border-emerald-500/20 hover:border-emerald-500/40 transition-all flex items-center justify-between gap-2"
                       >
@@ -680,7 +680,7 @@ export const FriendsManagerModal: React.FC<FriendsManagerModalProps> = ({
                   </div>
                 ) : (
                   <div className="space-y-2.5">
-                    {filteredSuggested.map((member) => {
+                    {filteredSuggested.map((member, idx) => {
                       const isRequested = sentRequestIds.has(member.username);
                       const alreadyFriend = contacts.some(
                         (c) => c.username.toLowerCase() === member.username.toLowerCase() && c.isFriend
@@ -688,7 +688,7 @@ export const FriendsManagerModal: React.FC<FriendsManagerModalProps> = ({
 
                       return (
                         <div
-                          key={member.username}
+                          key={`suggested-${member.username || member.name || idx}_${idx}`}
                           id={`suggested-member-${member.username}`}
                           className="p-3.5 rounded-2xl bg-stone-950/70 border border-stone-800 hover:border-stone-700 transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
                         >
@@ -780,9 +780,9 @@ export const FriendsManagerModal: React.FC<FriendsManagerModalProps> = ({
                   </div>
                 ) : (
                   <div className="space-y-2.5">
-                    {pendingRequests.map((req) => (
+                    {pendingRequests.map((req, idx) => (
                       <div
-                        key={req.id}
+                        key={`request-${req.id || idx}_${idx}`}
                         id={`request-item-${req.id}`}
                         className="p-3.5 rounded-2xl bg-stone-950/70 border border-amber-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
                       >
@@ -852,9 +852,9 @@ export const FriendsManagerModal: React.FC<FriendsManagerModalProps> = ({
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    {filteredAllFriends.map((contact) => (
+                    {filteredAllFriends.map((contact, idx) => (
                       <div
-                        key={contact.id}
+                        key={`friend-${contact.id || contact.userId || contact.username || idx}_${idx}`}
                         id={`friend-card-${contact.id}`}
                         className="p-3 rounded-2xl bg-stone-950/70 border border-stone-800 hover:border-stone-700 transition-all flex items-center justify-between gap-2"
                       >
