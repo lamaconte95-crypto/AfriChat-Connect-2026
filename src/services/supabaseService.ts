@@ -197,13 +197,14 @@ export const supabaseGetProfile = async (userId: string) => {
 export const profileToContact = (p: any): Contact => {
   const username = p.username || p.name?.toLowerCase().replace(/\s+/g, '_') || 'membre';
   const formattedUsername = username.startsWith('@') ? username : `@${username}`;
+  const avatarUrl = p.avatar_url || p.photo_url || p.avatar || p.photoURL || p.picture || p.profile_picture || p.image || '';
 
   return {
     id: p.id || `user_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
     userId: p.id || '',
     name: p.name || p.full_name || p.username || 'Membre AfriChat',
     username: formattedUsername,
-    avatar: p.avatar_url || p.avatar || '',
+    avatar: avatarUrl,
     country: p.country || "Côte d'Ivoire",
     flag: p.flag || '🇨🇮',
     phoneNumber: p.phone_number || p.phoneNumber || '',
@@ -227,52 +228,84 @@ export const supabaseFetchAllProfiles = async (): Promise<{
   error: any;
   simulated: boolean;
 }> => {
-  const client = getSupabaseClient();
-  if (!client) {
-    return { data: [], error: null, simulated: true };
-  }
-
   const operation = async () => {
     try {
       const mergedMap = new Map<string, Contact>();
+      const client = getSupabaseClient();
 
-      // 1. Query 'users' table in public schema (All registered members)
-      try {
-        const { data: usersData } = await client
-          .from('users')
-          .select('*')
-          .limit(1000);
+      if (client) {
+        // 1. Query 'users' table in public schema (All registered members - no user ID restriction)
+        try {
+          const { data: usersData } = await client
+            .from('users')
+            .select('*')
+            .limit(1000);
 
-        if (usersData && usersData.length > 0) {
-          usersData.forEach((u) => {
-            const contact = profileToContact(u);
-            mergedMap.set(contact.id, contact);
-          });
+          if (usersData && usersData.length > 0) {
+            usersData.forEach((u) => {
+              const contact = profileToContact(u);
+              mergedMap.set(contact.id || contact.username.toLowerCase(), contact);
+            });
+          }
+        } catch (e) {
+          console.warn('[Supabase Users query notice]:', e);
         }
-      } catch (e) {
-        console.warn('[Supabase Users query notice]:', e);
+
+        // 2. Query 'profiles' table in public schema (All registered members - no user ID restriction)
+        try {
+          const { data: profilesData, error: profilesError } = await client
+            .from('profiles')
+            .select('*')
+            .order('updated_at', { ascending: false })
+            .limit(1000);
+
+          if (!profilesError && profilesData && profilesData.length > 0) {
+            profilesData.forEach((p) => {
+              const contact = profileToContact(p);
+              const key = contact.id || contact.username.toLowerCase();
+              mergedMap.set(key, {
+                ...(mergedMap.get(key) || {}),
+                ...contact,
+              });
+            });
+          }
+        } catch (e) {
+          console.warn('[Supabase Profiles query notice]:', e);
+        }
       }
 
-      // 2. Query 'profiles' table in public schema
+      // 3. Fallback and sync with all registered Firestore users
       try {
-        const { data: profilesData, error: profilesError } = await client
-          .from('profiles')
-          .select('*')
-          .order('updated_at', { ascending: false })
-          .limit(1000);
-
-        if (!profilesError && profilesData && profilesData.length > 0) {
-          profilesData.forEach((p) => {
-            const contact = profileToContact(p);
-            // Profiles overwrite users or merge
-            mergedMap.set(contact.id, {
-              ...(mergedMap.get(contact.id) || {}),
-              ...contact,
+        const firestoreUsers = await getAllRegisteredUsersFromFirestore();
+        if (firestoreUsers && firestoreUsers.length > 0) {
+          firestoreUsers.forEach((fbUser) => {
+            const contact = profileToContact({
+              id: fbUser.id,
+              name: fbUser.name,
+              username: fbUser.username,
+              avatar: fbUser.avatar,
+              avatar_url: fbUser.avatar,
+              country: fbUser.country,
+              flag: fbUser.flag,
+              phone_number: fbUser.phoneNumber,
+              bio: fbUser.bio,
+              is_vip: fbUser.isVIP,
+              is_verified: fbUser.isVerified,
             });
+            const key = contact.id || contact.username.toLowerCase();
+            if (!mergedMap.has(key)) {
+              mergedMap.set(key, contact);
+            } else {
+              mergedMap.set(key, {
+                ...mergedMap.get(key)!,
+                ...contact,
+                avatar: contact.avatar || mergedMap.get(key)!.avatar,
+              });
+            }
           });
         }
       } catch (e) {
-        console.warn('[Supabase Profiles query notice]:', e);
+        console.warn('[Firestore users sync notice]:', e);
       }
 
       const allContacts = Array.from(mergedMap.values());
@@ -283,7 +316,7 @@ export const supabaseFetchAllProfiles = async (): Promise<{
     }
   };
 
-  return await withTimeout(operation(), 4500, { data: [], error: null, simulated: false });
+  return await withTimeout(operation(), 5000, { data: [], error: null, simulated: false });
 };
 
 export const supabaseSubscribeProfiles = (

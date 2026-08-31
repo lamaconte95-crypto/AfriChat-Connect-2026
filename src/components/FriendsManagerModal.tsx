@@ -27,7 +27,7 @@ import {
 } from 'lucide-react';
 import { Contact, User } from '../types';
 import { COUNTRIES } from '../data/mockData';
-import { supabaseSearchUsers, isSupabaseConfigured } from '../services/supabaseService';
+import { supabaseSearchUsers, supabaseFetchAllProfiles, isSupabaseConfigured } from '../services/supabaseService';
 import { UserAvatar } from './UserAvatar';
 
 export interface FriendRequest {
@@ -90,8 +90,39 @@ export const FriendsManagerModal: React.FC<FriendsManagerModalProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [sentRequestIds, setSentRequestIds] = useState<Set<string>>(new Set());
   const [supabaseSearchResults, setSupabaseSearchResults] = useState<Contact[]>([]);
+  const [allRegisteredCommunity, setAllRegisteredCommunity] = useState<Contact[]>([]);
   const [isSearchingSupabase, setIsSearchingSupabase] = useState(false);
+  const [isLoadingCommunity, setIsLoadingCommunity] = useState(false);
   const [lastRefreshedAt, setLastRefreshedAt] = useState<string>('À l\'instant');
+
+  // Load all registered users directly on modal open so the full community is always visible in 'Ajouter des amis'
+  useEffect(() => {
+    if (!isOpen) return;
+
+    let isMounted = true;
+    const loadCommunity = async () => {
+      setIsLoadingCommunity(true);
+      try {
+        const res = await supabaseFetchAllProfiles();
+        if (isMounted && res.data) {
+          const filtered = res.data.filter(
+            (u) => u.id !== currentUser.id && u.username.toLowerCase() !== currentUser.username.toLowerCase()
+          );
+          setAllRegisteredCommunity(filtered);
+        }
+      } catch (err) {
+        console.warn('Error fetching all community profiles:', err);
+      } finally {
+        if (isMounted) setIsLoadingCommunity(false);
+      }
+    };
+
+    loadCommunity();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen, currentUser.id, currentUser.username]);
 
   // Supabase live search debounce (instant single letter search)
   useEffect(() => {
@@ -148,7 +179,7 @@ export const FriendsManagerModal: React.FC<FriendsManagerModalProps> = ({
   const allFriends = contacts.filter((c) => c.isFriend && !c.isBlocked);
   const pendingRequests = friendRequests.filter((r) => r.status === 'pending');
 
-  // Combined Suggested Members: SUGGESTED_MEMBERS + any non-friend contacts from Supabase in contacts list + live search results
+  // Combined Suggested Members: SUGGESTED_MEMBERS + contacts + allRegisteredCommunity from Supabase/Firestore + live search results
   const dynamicSuggested: Array<Omit<Contact, 'id' | 'userId' | 'isBlocked' | 'isOnline'>> = [
     ...SUGGESTED_MEMBERS,
     ...contacts
@@ -163,6 +194,21 @@ export const FriendsManagerModal: React.FC<FriendsManagerModalProps> = ({
         bio: c.bio || `Membre inscrit sur la communauté AfriChat ${c.flag}`,
         isVIP: c.isVIP,
         isFriend: false,
+        mutualFriendsCount: c.mutualFriendsCount || 3,
+        category: c.category || 'friend',
+      })),
+    ...allRegisteredCommunity
+      .filter((c) => c.id !== currentUser.id)
+      .map((c) => ({
+        name: c.name,
+        username: c.username,
+        avatar: c.avatar,
+        flag: c.flag,
+        country: c.country,
+        phoneNumber: c.phoneNumber,
+        bio: c.bio || `Membre inscrit sur la communauté AfriChat ${c.flag}`,
+        isVIP: c.isVIP,
+        isFriend: Boolean(c.isFriend),
         mutualFriendsCount: c.mutualFriendsCount || 3,
         category: c.category || 'friend',
       })),

@@ -60,12 +60,9 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
     setImageError(false);
   }, [avatar]);
 
-  // Check if avatar is a valid real uploaded URL (data URI, Supabase/Firebase storage URL, or valid image URL)
+  // Check if avatar is valid string
   const isInvalidOrExternal = !avatar || 
-    avatar.includes('unsplash.com') || 
-    avatar.includes('picsum.photos') || 
-    avatar.includes('via.placeholder') ||
-    avatar.includes('loremflickr.com') ||
+    avatar.includes('via.placeholder') || 
     avatar.trim() === '';
 
   const initials = getInitials(name, username);
