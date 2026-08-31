@@ -192,13 +192,16 @@ export const FeedView: React.FC<FeedViewProps> = ({
       return false;
     }
 
-    // Search query filter
+    // Search query filter (Case-insensitive & @-prefix agnostic)
+    const rawSearch = searchQuery.trim().toLowerCase();
+    const cleanSearch = rawSearch.replace(/^@+/, '');
     const matchesSearch =
-      !searchQuery.trim() ||
-      post.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      post.author.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      post.author.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (post.tags && post.tags.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase())));
+      !cleanSearch ||
+      post.content.toLowerCase().includes(cleanSearch) ||
+      post.author.name.toLowerCase().includes(cleanSearch) ||
+      post.author.username.toLowerCase().includes(rawSearch) ||
+      post.author.username.toLowerCase().replace(/^@+/, '').includes(cleanSearch) ||
+      (post.tags && post.tags.some((t) => t.toLowerCase().includes(cleanSearch) || t.toLowerCase().includes(rawSearch)));
 
     if (!matchesSearch) return false;
 

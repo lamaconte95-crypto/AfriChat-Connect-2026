@@ -129,15 +129,24 @@ export const InviteParticipantsModal: React.FC<InviteParticipantsModalProps> = (
       all = all.filter((c) => c.isVIP || c.isVerified);
     }
 
-    // Filter by query
+    // Filter by query (Case-insensitive & @-prefix agnostic)
     if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase().trim();
-      all = all.filter(
-        (c) =>
-          c.name.toLowerCase().includes(q) ||
-          c.username.toLowerCase().includes(q) ||
-          c.country.toLowerCase().includes(q)
-      );
+      const rawQ = searchQuery.toLowerCase().trim();
+      const cleanQ = rawQ.replace(/^@+/, '');
+      all = all.filter((c) => {
+        const cName = (c.name || '').toLowerCase();
+        const cUser = (c.username || '').toLowerCase();
+        const cUserClean = cUser.replace(/^@+/, '');
+        const cCountry = (c.country || '').toLowerCase();
+        const cPhone = (c.phoneNumber || '').toLowerCase();
+        return (
+          cName.includes(cleanQ) ||
+          cUser.includes(rawQ) ||
+          cUserClean.includes(cleanQ) ||
+          cCountry.includes(cleanQ) ||
+          cPhone.includes(cleanQ)
+        );
+      });
     }
 
     return all;
