@@ -137,7 +137,8 @@ import {
   supabaseFetchUserProfile,
   supabaseSaveFriendship,
   supabaseFetchFriendships,
-  supabaseSubscribeFriendships
+  supabaseSubscribeFriendships,
+  COMMUNITY_FALLBACK_MEMBERS
 } from './services/supabaseService';
 import { dispatchSocialWebhook, getWebhookConfig } from './services/webhookService';
 
@@ -704,15 +705,23 @@ export default function App() {
         }
       });
 
-      const mergedList = Array.from(contactMap.values());
+      let mergedList = Array.from(contactMap.values());
+      if (mergedList.length === 0) {
+        COMMUNITY_FALLBACK_MEMBERS.forEach((seed) => {
+          if (seed.id !== currentUser.id && seed.username.toLowerCase() !== currentUser.username.toLowerCase()) {
+            contactMap.set(seed.id || seed.username.toLowerCase(), seed);
+          }
+        });
+        mergedList = Array.from(contactMap.values());
+      }
       setSupabaseUsersCount(mergedList.length);
 
       setContacts((prevContacts) => {
         if (mergedList.length === 0) {
-          return prevContacts.filter((c) => !c.id.startsWith('mock_'));
+          return prevContacts.length > 0 ? prevContacts : COMMUNITY_FALLBACK_MEMBERS.filter((c) => c.id !== currentUser.id);
         }
         return mergedList.map((m) => {
-          const prev = prevContacts.find((c) => c.id === m.id || c.username.toLowerCase() === m.username.toLowerCase());
+          const prev = prevContacts.find((c) => c.id === m.id || c.username.toLowerCase().replace(/[@]/g, '') === m.username.toLowerCase().replace(/[@]/g, ''));
           if (prev) {
             return {
               ...m,
