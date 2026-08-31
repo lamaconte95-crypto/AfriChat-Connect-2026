@@ -149,8 +149,8 @@ export const CURRENT_USER: User = {
   countryCode: 'CI',
   flag: '🇨🇮',
   bio: 'Entrepreneur Tech & Créateur de contenu Abidjan 🌴 | AfriChat Pioneer 🚀',
-  followersCount: 14200,
-  followingCount: 380,
+  followersCount: 0,
+  followingCount: 0,
   isVIP: true,
   isVerified: true,
   walletBalance: 47500, // 47,500 FCFA

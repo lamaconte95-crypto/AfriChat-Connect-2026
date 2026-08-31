@@ -344,7 +344,17 @@ export interface Contact {
   reportsCount?: number;
   distinctReporters?: string[];
   mutualFriendsCount?: number;
+  followersCount?: number;
+  followingCount?: number;
+  postsCount?: number;
   category?: 'friend' | 'creator' | 'family' | 'business';
+}
+
+export interface Follow {
+  id: string;
+  followerId: string;
+  followingId: string;
+  createdAt: string;
 }
 
 export interface ReportTicket {

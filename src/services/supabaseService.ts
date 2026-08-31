@@ -1065,6 +1065,188 @@ export const supabaseSubscribeFriendships = (
   }
 };
 
+/**
+ * 100% Dynamic Follow / Unfollow System in Supabase:
+ * - When follow: inserts record into 'follows' table, increments target's followers_count (+1) and user's following_count (+1)
+ * - When unfollow: deletes record from 'follows' table, decrements target's followers_count (-1) and user's following_count (-1)
+ */
+export const supabaseSaveFollow = async (
+  followerId: string,
+  followingId: string,
+  isFollow: boolean
+): Promise<{ success: boolean; error?: any; simulated: boolean }> => {
+  const client = getSupabaseClient();
+  if (!client || !followerId || !followingId || followerId === followingId) {
+    return { success: true, simulated: true };
+  }
+
+  const followId = `${followerId}_${followingId}`;
+
+  try {
+    if (isFollow) {
+      // 1. Insert into follows table
+      const { error: followErr } = await client.from('follows').upsert({
+        id: followId,
+        follower_id: followerId,
+        following_id: followingId,
+        created_at: new Date().toISOString(),
+      });
+
+      if (followErr) {
+        console.warn('Supabase follows table upsert notification:', followErr?.message || followErr);
+      }
+
+      // Also keep friendships / friends tables in sync
+      try {
+        await client.from('friendships').upsert({
+          user_id: followerId,
+          friend_id: followingId,
+          status: 'accepted',
+          updated_at: new Date().toISOString(),
+        });
+      } catch (e) {}
+
+      // 2. Increment following_count for follower profile/user
+      try {
+        const { data: followerData } = await client
+          .from('profiles')
+          .select('following_count')
+          .eq('id', followerId)
+          .single();
+        const currentCount = Number(followerData?.following_count || 0);
+        await client
+          .from('profiles')
+          .update({ following_count: currentCount + 1 })
+          .eq('id', followerId);
+      } catch (e) {}
+
+      // 3. Increment followers_count for target following profile/user
+      try {
+        const { data: followingData } = await client
+          .from('profiles')
+          .select('followers_count')
+          .eq('id', followingId)
+          .single();
+        const currentCount = Number(followingData?.followers_count || 0);
+        await client
+          .from('profiles')
+          .update({ followers_count: currentCount + 1 })
+          .eq('id', followingId);
+      } catch (e) {}
+
+      return { success: true, simulated: false };
+    } else {
+      // 1. Delete from follows table
+      await client
+        .from('follows')
+        .delete()
+        .match({ follower_id: followerId, following_id: followingId });
+
+      // Also keep friendships / friends tables in sync
+      try {
+        await client
+          .from('friendships')
+          .delete()
+          .match({ user_id: followerId, friend_id: followingId });
+      } catch (e) {}
+
+      // 2. Decrement following_count for follower profile
+      try {
+        const { data: followerData } = await client
+          .from('profiles')
+          .select('following_count')
+          .eq('id', followerId)
+          .single();
+        const currentCount = Number(followerData?.following_count || 1);
+        await client
+          .from('profiles')
+          .update({ following_count: Math.max(0, currentCount - 1) })
+          .eq('id', followerId);
+      } catch (e) {}
+
+      // 3. Decrement followers_count for target following profile
+      try {
+        const { data: followingData } = await client
+          .from('profiles')
+          .select('followers_count')
+          .eq('id', followingId)
+          .single();
+        const currentCount = Number(followingData?.followers_count || 1);
+        await client
+          .from('profiles')
+          .update({ followers_count: Math.max(0, currentCount - 1) })
+          .eq('id', followingId);
+      } catch (e) {}
+
+      return { success: true, simulated: false };
+    }
+  } catch (err) {
+    console.warn('Supabase follow toggle error:', err);
+    return { success: false, error: err, simulated: false };
+  }
+};
+
+/**
+ * Fetch all follower and following IDs for a user from Supabase
+ */
+export const supabaseFetchFollows = async (
+  userId: string
+): Promise<{ followingIds: string[]; followerIds: string[] }> => {
+  const client = getSupabaseClient();
+  if (!client || !userId) {
+    return { followingIds: [], followerIds: [] };
+  }
+
+  try {
+    const [followingRes, followersRes] = await Promise.all([
+      client.from('follows').select('following_id').eq('follower_id', userId),
+      client.from('follows').select('follower_id').eq('following_id', userId),
+    ]);
+
+    const followingIds = (followingRes.data || []).map((d: any) => d.following_id).filter(Boolean);
+    const followerIds = (followersRes.data || []).map((d: any) => d.follower_id).filter(Boolean);
+
+    return { followingIds, followerIds };
+  } catch (e) {
+    return { followingIds: [], followerIds: [] };
+  }
+};
+
+/**
+ * Real-time subscription to follows changes in Supabase
+ */
+export const supabaseSubscribeFollows = (
+  userId: string,
+  onUpdate: (data: { followingIds: string[]; followerIds: string[] }) => void
+) => {
+  const client = getSupabaseClient();
+  if (!client || !userId) return () => {};
+
+  try {
+    const channel = client
+      .channel(`user-follows-${userId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'follows',
+        },
+        async () => {
+          const freshData = await supabaseFetchFollows(userId);
+          onUpdate(freshData);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      client.removeChannel(channel);
+    };
+  } catch (e) {
+    return () => {};
+  }
+};
+
 // ==========================================
 // 2. STORAGE: AVATARS, POSTS MULTIMEDIA & STORIES
 // ==========================================
@@ -2378,6 +2560,15 @@ CREATE TABLE IF NOT EXISTS public.user_blocks (
   UNIQUE(blocker_id, blocked_id)
 );
 
+-- 7b. Table des Abonnements (Follows en temps réel)
+CREATE TABLE IF NOT EXISTS public.follows (
+  id TEXT PRIMARY KEY,
+  follower_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  following_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  UNIQUE(follower_id, following_id)
+);
+
 -- 8. Table des signalements & Modération automatique (3 signalements = suspension)
 CREATE TABLE IF NOT EXISTS public.reports (
   id TEXT PRIMARY KEY,
@@ -2434,6 +2625,7 @@ ALTER TABLE public.post_comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.conversations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_blocks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.follows ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.reports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.live_streams ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.live_stream_messages ENABLE ROW LEVEL SECURITY;

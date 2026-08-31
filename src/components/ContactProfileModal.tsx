@@ -8,7 +8,7 @@ import {
   MessageSquare, 
   Coins, 
   UserPlus, 
-  UserMinus, 
+  UserCheck, 
   ShieldAlert, 
   Lock, 
   AlertTriangle, 
@@ -31,6 +31,7 @@ interface ContactProfileModalProps {
   onToggleFriend: (contactId: string) => void;
   onToggleBlock: (contactId: string) => void;
   onOpenReport: (contact: Contact) => void;
+  contactPostsCount?: number;
   onStartCall?: (contact: Contact, type: 'audio' | 'video') => void;
   onOpenChat?: (contact: Contact) => void;
   onSendMobileMoneyTip?: (contact: Contact) => void;
@@ -46,6 +47,7 @@ export const ContactProfileModal: React.FC<ContactProfileModalProps> = ({
   onToggleFriend,
   onToggleBlock,
   onOpenReport,
+  contactPostsCount = 0,
   onStartCall,
   onOpenChat,
   onSendMobileMoneyTip,
@@ -53,7 +55,7 @@ export const ContactProfileModal: React.FC<ContactProfileModalProps> = ({
   onOpenGameChallenge,
 }) => {
   const [showBlockConfirm, setShowBlockConfirm] = useState(false);
-  const [isFollowing, setIsFollowing] = useState(contact?.isFriend || false);
+  const isFollowing = Boolean(contact?.isFriend);
 
   if (!isOpen || !contact) return null;
 
@@ -63,7 +65,6 @@ export const ContactProfileModal: React.FC<ContactProfileModalProps> = ({
   };
 
   const handleToggleFollow = () => {
-    setIsFollowing(!isFollowing);
     onToggleFriend(contact.id);
   };
 
@@ -165,18 +166,24 @@ export const ContactProfileModal: React.FC<ContactProfileModalProps> = ({
               )}
             </div>
 
-            {/* Stats Bar */}
+            {/* Stats Bar (100% Dynamique & Connecté à la base de données) */}
             <div className="grid grid-cols-3 gap-2 py-2.5 px-3 rounded-2xl bg-stone-950 border border-stone-800/80 text-center mb-3">
               <div>
-                <span className="block text-sm font-bold text-white">1 240</span>
+                <span className="block text-sm font-bold text-white">
+                  {(contact.followersCount ?? 0).toLocaleString()}
+                </span>
                 <span className="text-[9px] text-stone-400 uppercase tracking-wider">Abonnés</span>
               </div>
               <div>
-                <span className="block text-sm font-bold text-white">180</span>
+                <span className="block text-sm font-bold text-white">
+                  {(contact.followingCount ?? 0).toLocaleString()}
+                </span>
                 <span className="text-[9px] text-stone-400 uppercase tracking-wider">Suivis</span>
               </div>
               <div>
-                <span className="block text-sm font-bold text-white">42</span>
+                <span className="block text-sm font-bold text-white">
+                  {contactPostsCount !== undefined ? contactPostsCount : (contact.postsCount ?? 0)}
+                </span>
                 <span className="text-[9px] text-stone-400 uppercase tracking-wider">Publications</span>
               </div>
             </div>
@@ -210,9 +217,9 @@ export const ContactProfileModal: React.FC<ContactProfileModalProps> = ({
             {/* Action Buttons (Luminous Neon/Emerald Green Buttons) */}
             {!contact.isBlocked && !contact.isSuspended && (
               <div className="space-y-2 mb-4">
-                {/* Primary Buttons: Suivre + Message */}
+                {/* Primary Buttons: S'abonner / Abonné + Message */}
                 <div className="grid grid-cols-2 gap-2">
-                  {/* Glowing Neon Green 'Suivre' / 'Follow' button */}
+                  {/* Glowing Neon Green 'S'abonner' / 'Abonné' button */}
                   <button
                     id="contact-follow-primary-btn"
                     onClick={handleToggleFollow}
@@ -222,8 +229,12 @@ export const ContactProfileModal: React.FC<ContactProfileModalProps> = ({
                         : 'bg-emerald-500 hover:bg-emerald-400 text-stone-950 shadow-emerald-500/25 active:scale-95'
                     }`}
                   >
-                    <UserPlus className="w-3.5 h-3.5 stroke-[2.5]" />
-                    <span>{isFollowing ? 'Abonné ✓' : 'Suivre'}</span>
+                    {isFollowing ? (
+                      <UserCheck className="w-3.5 h-3.5 stroke-[2.5] text-emerald-400" />
+                    ) : (
+                      <UserPlus className="w-3.5 h-3.5 stroke-[2.5]" />
+                    )}
+                    <span>{isFollowing ? 'Abonné ✓' : "S'abonner"}</span>
                   </button>
 
                   <button

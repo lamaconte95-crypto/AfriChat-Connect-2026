@@ -31,8 +31,9 @@ import {
   arrayUnion,
   arrayRemove,
   deleteDoc,
+  increment,
 } from 'firebase/firestore';
-import { User, Message, ChatConversation } from '../types';
+import { User, Message, ChatConversation, Follow } from '../types';
 import { COUNTRIES } from '../data/mockData';
 
 // Official Firebase Config for AfriChat Connect
@@ -283,6 +284,214 @@ export async function getUserFriendsFromFirestore(userId: string): Promise<strin
   } catch (error) {
     console.warn('Could not fetch friends from Firestore:', error);
     return [];
+  }
+}
+
+/**
+ * Save or remove follow relationship in Firestore:
+ * - Upserts/deletes in /follows/{followerId_followingId}
+ * - Dynamically updates followersCount (+1/-1) on followingId profile
+ * - Dynamically updates followingCount (+1/-1) on followerId profile
+ */
+export async function saveFollowRelationship(
+  followerId: string,
+  followingId: string,
+  isFollow: boolean
+): Promise<{ success: boolean; error?: any }> {
+  try {
+    if (!followerId || !followingId || followerId === followingId) {
+      return { success: false, error: 'Invalid user IDs' };
+    }
+
+    const followDocId = `${followerId}_${followingId}`;
+    const followDocRef = doc(db, 'follows', followDocId);
+
+    const followerUserRef = doc(db, 'users', followerId);
+    const followingUserRef = doc(db, 'users', followingId);
+
+    if (isFollow) {
+      // 1. Write follow record to /follows collection
+      await setDoc(followDocRef, {
+        id: followDocId,
+        followerId,
+        followingId,
+        createdAt: serverTimestamp(),
+      });
+
+      // 2. Increment followingCount for current user & add to followingIds
+      await updateDoc(followerUserRef, {
+        followingCount: increment(1),
+        followingIds: arrayUnion(followingId),
+        friendIds: arrayUnion(followingId),
+        updatedAt: serverTimestamp(),
+      }).catch(async () => {
+        await setDoc(
+          followerUserRef,
+          {
+            followingCount: 1,
+            followingIds: [followingId],
+            friendIds: [followingId],
+            updatedAt: serverTimestamp(),
+          },
+          { merge: true }
+        );
+      });
+
+      // 3. Increment followersCount for target user & add to followerIds
+      await updateDoc(followingUserRef, {
+        followersCount: increment(1),
+        followerIds: arrayUnion(followerId),
+        updatedAt: serverTimestamp(),
+      }).catch(async () => {
+        await setDoc(
+          followingUserRef,
+          {
+            followersCount: 1,
+            followerIds: [followerId],
+            updatedAt: serverTimestamp(),
+          },
+          { merge: true }
+        );
+      });
+    } else {
+      // 1. Delete follow record
+      await deleteDoc(followDocRef).catch(() => {});
+
+      // 2. Decrement followingCount for current user & remove from followingIds
+      const followerSnap = await getDoc(followerUserRef).catch(() => null);
+      const currentFollowingCount = followerSnap?.exists() ? (followerSnap.data()?.followingCount || 1) : 1;
+      const newFollowingCount = Math.max(0, currentFollowingCount - 1);
+
+      await updateDoc(followerUserRef, {
+        followingCount: newFollowingCount,
+        followingIds: arrayRemove(followingId),
+        friendIds: arrayRemove(followingId),
+        updatedAt: serverTimestamp(),
+      }).catch(async () => {
+        await setDoc(
+          followerUserRef,
+          {
+            followingCount: newFollowingCount,
+            followingIds: [],
+            friendIds: [],
+            updatedAt: serverTimestamp(),
+          },
+          { merge: true }
+        );
+      });
+
+      // 3. Decrement followersCount for target user & remove from followerIds
+      const followingSnap = await getDoc(followingUserRef).catch(() => null);
+      const currentFollowersCount = followingSnap?.exists() ? (followingSnap.data()?.followersCount || 1) : 1;
+      const newFollowersCount = Math.max(0, currentFollowersCount - 1);
+
+      await updateDoc(followingUserRef, {
+        followersCount: newFollowersCount,
+        followerIds: arrayRemove(followerId),
+        updatedAt: serverTimestamp(),
+      }).catch(async () => {
+        await setDoc(
+          followingUserRef,
+          {
+            followersCount: newFollowersCount,
+            followerIds: [],
+            updatedAt: serverTimestamp(),
+          },
+          { merge: true }
+        );
+      });
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.warn('Could not save follow relationship in Firestore:', error);
+    return { success: false, error };
+  }
+}
+
+/**
+ * Real-time subscription to follows for a user:
+ * Listens to who the user is following and who follows the user
+ */
+export function subscribeToUserFollows(
+  userId: string,
+  onUpdate: (data: { followingIds: string[]; followerIds: string[] }) => void
+): Unsubscribe {
+  if (!userId) {
+    return () => {};
+  }
+
+  try {
+    const followsCol = collection(db, 'follows');
+    const followingQuery = query(followsCol, where('followerId', '==', userId));
+    const followersQuery = query(followsCol, where('followingId', '==', userId));
+
+    let followingIds: string[] = [];
+    let followerIds: string[] = [];
+
+    const unsubFollowing = onSnapshot(
+      followingQuery,
+      (snap) => {
+        followingIds = snap.docs.map((d) => d.data().followingId as string).filter(Boolean);
+        onUpdate({ followingIds, followerIds });
+      },
+      (err) => console.warn('Following subscription warning:', err)
+    );
+
+    const unsubFollowers = onSnapshot(
+      followersQuery,
+      (snap) => {
+        followerIds = snap.docs.map((d) => d.data().followerId as string).filter(Boolean);
+        onUpdate({ followingIds, followerIds });
+      },
+      (err) => console.warn('Followers subscription warning:', err)
+    );
+
+    return () => {
+      unsubFollowing();
+      unsubFollowers();
+    };
+  } catch (e) {
+    console.warn('Error setting up follows subscriptions:', e);
+    return () => {};
+  }
+}
+
+/**
+ * Fetch follow stats and IDs for a user from Firestore
+ */
+export async function getUserFollowStats(userId: string): Promise<{
+  followingIds: string[];
+  followerIds: string[];
+  followersCount: number;
+  followingCount: number;
+}> {
+  try {
+    if (!userId) {
+      return { followingIds: [], followerIds: [], followersCount: 0, followingCount: 0 };
+    }
+
+    const followsCol = collection(db, 'follows');
+    const followingQ = query(followsCol, where('followerId', '==', userId));
+    const followersQ = query(followsCol, where('followingId', '==', userId));
+
+    const [followingSnap, followersSnap] = await Promise.all([
+      getDocs(followingQ).catch(() => null),
+      getDocs(followersQ).catch(() => null),
+    ]);
+
+    const followingIds = followingSnap ? followingSnap.docs.map((d) => d.data().followingId as string).filter(Boolean) : [];
+    const followerIds = followersSnap ? followersSnap.docs.map((d) => d.data().followerId as string).filter(Boolean) : [];
+
+    return {
+      followingIds,
+      followerIds,
+      followersCount: followerIds.length,
+      followingCount: followingIds.length,
+    };
+  } catch (e) {
+    console.warn('Error fetching follow stats from Firestore:', e);
+    return { followingIds: [], followerIds: [], followersCount: 0, followingCount: 0 };
   }
 }
 

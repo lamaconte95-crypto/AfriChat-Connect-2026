@@ -78,7 +78,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
   onUpdateAvatar,
 }) => {
   const [activeTab, setActiveTab] = useState<'posts' | 'unlocked' | 'stats'>('posts');
-  const [isFollowingSelf, setIsFollowingSelf] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
   const coverInputRef = useRef<HTMLInputElement | null>(null);
   const [customCoverUrl, setCustomCoverUrl] = useState<string | null>(null);
@@ -331,17 +330,17 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
             <p className="text-xs text-emerald-400/90 font-mono font-medium">{currentUser.username}</p>
           </div>
 
-          {/* 3. Stats Bar (Abonnés / Suivis / Publications) */}
+          {/* 3. Stats Bar (Abonnés / Suivis / Publications - 100% Dynamique & Temps Réel) */}
           <div className="grid grid-cols-4 gap-2 py-3.5 px-4 rounded-2xl bg-stone-950/80 border border-stone-800/80 text-center mb-4">
             <div>
               <span className="block text-base sm:text-lg font-bold text-white tracking-tight">
-                {currentUser.followersCount.toLocaleString()}
+                {(currentUser.followersCount ?? 0).toLocaleString()}
               </span>
               <span className="text-[10px] text-stone-400 uppercase tracking-wider">Abonnés</span>
             </div>
             <div>
               <span className="block text-base sm:text-lg font-bold text-white tracking-tight">
-                {currentUser.followingCount || 380}
+                {(currentUser.followingCount ?? 0).toLocaleString()}
               </span>
               <span className="text-[10px] text-stone-400 uppercase tracking-wider">Suivis</span>
             </div>
@@ -361,18 +360,14 @@ export const ProfileView: React.FC<ProfileViewProps> = ({
 
           {/* 4. Action Buttons (Neon Green / Emerald Green Rounded Buttons) */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
-            {/* Primary Neon Green 'Suivre' / 'Follow' button */}
+            {/* Nouveau Post / Publier Button */}
             <button
-              id="profile-follow-btn"
-              onClick={() => setIsFollowingSelf(!isFollowingSelf)}
-              className={`py-2.5 px-4 rounded-full font-bold text-xs flex items-center justify-center space-x-1.5 transition-all shadow-md cursor-pointer ${
-                isFollowingSelf
-                  ? 'bg-stone-800 text-stone-200 border border-stone-700 hover:bg-stone-750'
-                  : 'bg-emerald-500 hover:bg-emerald-400 text-stone-950 shadow-emerald-500/25 active:scale-95'
-              }`}
+              id="profile-create-post-btn"
+              onClick={onOpenCreatePost}
+              className="py-2.5 px-4 rounded-full font-bold text-xs flex items-center justify-center space-x-1.5 transition-all shadow-md bg-emerald-500 hover:bg-emerald-400 text-stone-950 shadow-emerald-500/25 active:scale-95 cursor-pointer"
             >
-              <UserPlus className="w-3.5 h-3.5 stroke-[2.5]" />
-              <span>{isFollowingSelf ? 'Abonné ✓' : 'Suivre'}</span>
+              <Sparkles className="w-3.5 h-3.5 stroke-[2.5]" />
+              <span>Publier</span>
             </button>
 
             {/* Modifier Profil Button */}

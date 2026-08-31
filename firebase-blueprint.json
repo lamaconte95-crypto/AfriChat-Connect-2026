@@ -85,12 +85,28 @@
         "isVIPOnly": { "type": "boolean" }
       },
       "required": ["id", "userId", "content"]
+    },
+    "follows": {
+      "title": "Follow",
+      "description": "Follow relationship between users",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "followerId": { "type": "string" },
+        "followingId": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "followerId", "followingId"]
     }
   },
   "firestore": {
     "/users/{userId}": {
       "schema": "users",
       "description": "User profile documents keyed by Firebase Auth UID"
+    },
+    "/follows/{followId}": {
+      "schema": "follows",
+      "description": "Real-time follow relationships between users"
     },
     "/conversations/{conversationId}": {
       "schema": "conversations",
