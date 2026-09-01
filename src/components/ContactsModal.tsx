@@ -466,13 +466,19 @@ export const ContactsModal: React.FC<ContactsModalProps> = ({
                 {/* List of Contacts */}
                 {filteredContacts.length === 0 ? (
                   <div className="p-8 text-center space-y-2 rounded-2xl bg-stone-950/40 border border-stone-800">
-                    <p className="text-xs text-stone-300 font-bold">Aucun utilisateur trouvé</p>
+                    <p className="text-xs text-stone-300 font-bold">
+                      {activeTab === 'blocked'
+                        ? "Aucun contact bloqué"
+                        : searchQuery
+                        ? "Aucun contact trouvé"
+                        : "Aucun utilisateur inscrit pour le moment"}
+                    </p>
                     <p className="text-[11px] text-stone-500">
                       {activeTab === 'blocked'
-                        ? "Aucun utilisateur bloqué."
+                        ? "Vous n'avez bloqué aucun utilisateur."
                         : searchQuery
                         ? `Aucun contact ne correspond à "${searchQuery}".`
-                        : "Aucun contact enregistré."}
+                        : "Votre répertoire est vide pour le moment. Dès que de nouveaux utilisateurs s'inscriront, vous pourrez les ajouter en ami."}
                     </p>
                   </div>
                 ) : (

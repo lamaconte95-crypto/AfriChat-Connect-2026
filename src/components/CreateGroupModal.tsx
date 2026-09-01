@@ -14,22 +14,15 @@ import {
   Tag,
   Coins
 } from 'lucide-react';
-import { ChatConversation, User } from '../types';
+import { ChatConversation, User, Contact } from '../types';
 
 interface CreateGroupModalProps {
   isOpen: boolean;
   onClose: () => void;
   onCreateGroup: (groupData: Partial<ChatConversation>) => void;
   currentUser: User;
+  contacts?: Contact[];
 }
-
-const PRESET_CONTACTS = [
-  { id: 'u_fatou', name: 'Fatou Diallo', avatar: '', flag: '🇸🇳', role: 'Designer UI/UX' },
-  { id: 'u_samuel', name: 'Samuel Eto', avatar: '', flag: '🇨🇲', role: 'Dev Fullstack' },
-  { id: 'u_aicha', name: 'Aïcha Traoré', avatar: '', flag: '🇨🇮', role: 'Fondatrice E-com' },
-  { id: 'u_moussa', name: 'Moussa Camara', avatar: '', flag: '🇬🇳', role: 'Trader & Investisseur' },
-  { id: 'u_grace', name: 'Grâce Kalala', avatar: '', flag: '🇨🇩', role: 'Créatrice Mode' },
-];
 
 const CATEGORIES = [
   'Business & Startup',
@@ -45,13 +38,19 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
   onClose,
   onCreateGroup,
   currentUser,
+  contacts = [],
 }) => {
   const [groupType, setGroupType] = useState<'group' | 'vip_salon'>('group');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState(CATEGORIES[0]);
   const [vipPrice, setVipPrice] = useState<number>(2500);
-  const [selectedMembers, setSelectedMembers] = useState<string[]>(['u_fatou', 'u_samuel']);
+  const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
+
+  // Filter out current user from contacts
+  const availableContacts = contacts.filter(
+    (c) => c.id !== currentUser.id && c.username.toLowerCase() !== currentUser.username.toLowerCase()
+  );
 
   if (!isOpen) return null;
 
@@ -277,37 +276,47 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
               <label className="block text-xs font-bold text-stone-300 mb-2">
                 Inviter des contacts ({selectedMembers.length} sélectionnés)
               </label>
-              <div className="max-h-36 overflow-y-auto space-y-1.5 pr-1 divide-y divide-stone-800/40">
-                {PRESET_CONTACTS.map((contact) => {
-                  const isSelected = selectedMembers.includes(contact.id);
-                  return (
-                    <div
-                      key={contact.id}
-                      onClick={() => toggleMember(contact.id)}
-                      className={`p-2 rounded-xl flex items-center justify-between cursor-pointer transition-colors ${
-                        isSelected ? 'bg-amber-500/10' : 'hover:bg-stone-800/50'
-                      }`}
-                    >
-                      <div className="flex items-center space-x-2.5">
-                        <UserAvatar name={contact.name} avatar={contact.avatar} size="sm" />
-                        <div>
-                          <div className="text-xs font-bold text-stone-200 flex items-center space-x-1">
-                            <span>{contact.name}</span>
-                            <span>{contact.flag}</span>
+              {availableContacts.length === 0 ? (
+                <div className="p-3.5 text-center rounded-2xl bg-stone-950/60 border border-stone-800/80 text-stone-400 text-xs">
+                  <p className="font-semibold text-stone-300">Aucun utilisateur inscrit pour le moment</p>
+                  <p className="text-[11px] text-stone-500 mt-0.5">
+                    Vous pouvez créer le groupe dès maintenant et inviter des membres ultérieurement.
+                  </p>
+                </div>
+              ) : (
+                <div className="max-h-36 overflow-y-auto space-y-1.5 pr-1 divide-y divide-stone-800/40">
+                  {availableContacts.map((contact) => {
+                    const contactId = contact.id || contact.userId || contact.username;
+                    const isSelected = selectedMembers.includes(contactId);
+                    return (
+                      <div
+                        key={contactId}
+                        onClick={() => toggleMember(contactId)}
+                        className={`p-2 rounded-xl flex items-center justify-between cursor-pointer transition-colors ${
+                          isSelected ? 'bg-amber-500/10' : 'hover:bg-stone-800/50'
+                        }`}
+                      >
+                        <div className="flex items-center space-x-2.5 min-w-0">
+                          <UserAvatar name={contact.name} username={contact.username} avatar={contact.avatar} flag={contact.flag} isVIP={contact.isVIP} size="sm" />
+                          <div className="min-w-0">
+                            <div className="text-xs font-bold text-stone-200 flex items-center space-x-1 truncate">
+                              <span className="truncate">{contact.name}</span>
+                              <span>{contact.flag}</span>
+                            </div>
+                            <div className="text-[10px] text-stone-500 truncate">{contact.username}</div>
                           </div>
-                          <div className="text-[10px] text-stone-500">{contact.role}</div>
+                        </div>
+
+                        <div className={`w-5 h-5 rounded-lg border flex items-center justify-center shrink-0 ml-2 ${
+                          isSelected ? 'bg-amber-500 border-amber-500 text-stone-950' : 'border-stone-700'
+                        }`}>
+                          {isSelected && <Check className="w-3.5 h-3.5" />}
                         </div>
                       </div>
-
-                      <div className={`w-5 h-5 rounded-lg border flex items-center justify-center ${
-                        isSelected ? 'bg-amber-500 border-amber-500 text-stone-950' : 'border-stone-700'
-                      }`}>
-                        {isSelected && <Check className="w-3.5 h-3.5" />}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             {/* Submit Button */}

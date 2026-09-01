@@ -143,8 +143,7 @@ import {
   supabaseSubscribeFriendships,
   supabaseSaveFollow,
   supabaseFetchFollows,
-  supabaseSubscribeFollows,
-  COMMUNITY_FALLBACK_MEMBERS
+  supabaseSubscribeFollows
 } from './services/supabaseService';
 import { dispatchSocialWebhook, getWebhookConfig } from './services/webhookService';
 
@@ -738,20 +737,12 @@ export default function App() {
         }
       });
 
-      let mergedList = Array.from(contactMap.values());
-      if (mergedList.length === 0) {
-        COMMUNITY_FALLBACK_MEMBERS.forEach((seed) => {
-          if (seed.id !== currentUser.id && seed.username.toLowerCase() !== currentUser.username.toLowerCase()) {
-            contactMap.set(seed.id || seed.username.toLowerCase(), seed);
-          }
-        });
-        mergedList = Array.from(contactMap.values());
-      }
+      const mergedList = Array.from(contactMap.values());
       setSupabaseUsersCount(mergedList.length);
 
       setContacts((prevContacts) => {
         if (mergedList.length === 0) {
-          return prevContacts.length > 0 ? prevContacts : COMMUNITY_FALLBACK_MEMBERS.filter((c) => c.id !== currentUser.id);
+          return [];
         }
         return mergedList.map((m) => {
           const prev = prevContacts.find((c) => c.id === m.id || c.username.toLowerCase().replace(/[@]/g, '') === m.username.toLowerCase().replace(/[@]/g, ''));
@@ -2700,6 +2691,7 @@ export default function App() {
         onClose={() => setIsCreateGroupOpen(false)}
         onCreateGroup={handleCreateGroup}
         currentUser={currentUser}
+        contacts={contacts}
       />
 
       {/* Settings & Profile Customization Modal */}

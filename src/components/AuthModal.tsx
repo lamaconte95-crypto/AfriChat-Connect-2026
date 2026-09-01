@@ -5,7 +5,6 @@ import {
   signInWithEmailAndPassword,
   signInWithPopup,
   GoogleAuthProvider,
-  signInAnonymously,
   sendPasswordResetEmail,
   sendEmailVerification,
   updateProfile,
@@ -26,7 +25,6 @@ import {
   AlertCircle,
   Loader2,
   KeyRound,
-  Zap,
   Crown,
   HeartHandshake,
   MailCheck,
@@ -343,48 +341,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     } catch (err: any) {
       console.error('Google sign in error:', err);
       setErrorMessage(formatFirebaseAuthError(err));
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Handle Quick Demo Account / Guest Mode
-  const handleDemoSignIn = async () => {
-    setErrorMessage(null);
-    setIsLoading(true);
-
-    try {
-      // Anonymous authentication for instant trial without typing
-      const userCredential = await signInAnonymously(auth);
-      const fbUser = userCredential.user;
-
-      let userProfile = await getUserProfile(fbUser.uid);
-
-      if (!userProfile) {
-        const demoNames = ['Awa Traoré', 'Kofi Mensah', 'Nadine Mbia', 'Moussa Fofana', 'Fatou Diallo'];
-        const chosenName = demoNames[Math.floor(Math.random() * demoNames.length)];
-        userProfile = buildDefaultUser(
-          fbUser.uid,
-          chosenName,
-          `demo.${fbUser.uid.substring(0, 6)}@africhat.africa`,
-          `@${chosenName.toLowerCase().replace(/\s+/g, '_')}`,
-          'CI'
-        );
-        userProfile.isVerified = true;
-        await saveUserProfile(userProfile);
-      }
-
-      setSuccessMessage('Connexion Démo rapide réussie !');
-      setTimeout(() => {
-        onAuthSuccess(userProfile);
-      }, 300);
-    } catch (err: any) {
-      console.error('Demo sign in error:', err);
-      // Local fallback in case anonymous auth is strictly offline
-      const fallbackUid = `demo_${Date.now()}`;
-      const fallbackUser = buildDefaultUser(fallbackUid, 'Ibrahim Diallo', 'ibrahim@africhat.africa', '@ibrahim_d', 'CI');
-      fallbackUser.isVerified = true;
-      onAuthSuccess(fallbackUser);
     } finally {
       setIsLoading(false);
     }
@@ -983,19 +939,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
                   />
                 </svg>
-                <span>Continuer avec Google (Pré-vérifié)</span>
-              </button>
-
-              {/* Instant Demo Account */}
-              <button
-                type="button"
-                id="auth-demo-btn"
-                onClick={handleDemoSignIn}
-                disabled={isLoading}
-                className="w-full py-2.5 px-4 rounded-2xl bg-stone-900/90 hover:bg-stone-800 text-stone-300 hover:text-white border border-stone-800 text-xs font-semibold flex items-center justify-center space-x-2 cursor-pointer transition-colors"
-              >
-                <Zap className="w-3.5 h-3.5 text-amber-400" />
-                <span>Accès Démo 1-Clic (Sans Inscription)</span>
+                <span>Continuer avec Google</span>
               </button>
             </div>
           )}

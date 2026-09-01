@@ -352,19 +352,9 @@ export const FriendsManagerModal: React.FC<FriendsManagerModalProps> = ({
   };
 
   // Filtered lists based on search query
-  const matchedOnline = onlineFriends.filter(matchesContactSearch).sort(sortRanked);
-  const matchedAllFriends = allFriends.filter(matchesContactSearch).sort(sortRanked);
-  const matchedSuggested = allSuggestedMembers.filter(matchesContactSearch).sort(sortRanked);
-
-  // If search query is empty OR if search returns no specific results, default to showing the full registered community list
-  const isFallbackSuggested = Boolean(cleanQ && matchedSuggested.length === 0);
-  const filteredSuggested = isFallbackSuggested ? allSuggestedMembers : matchedSuggested;
-
-  const isFallbackOnline = Boolean(cleanQ && matchedOnline.length === 0);
-  const filteredOnline = isFallbackOnline ? onlineFriends : matchedOnline;
-
-  const isFallbackAllFriends = Boolean(cleanQ && matchedAllFriends.length === 0);
-  const filteredAllFriends = isFallbackAllFriends ? allFriends : matchedAllFriends;
+  const filteredOnline = onlineFriends.filter(matchesContactSearch).sort(sortRanked);
+  const filteredAllFriends = allFriends.filter(matchesContactSearch).sort(sortRanked);
+  const filteredSuggested = allSuggestedMembers.filter(matchesContactSearch).sort(sortRanked);
 
   return (
     <AnimatePresence>
@@ -659,23 +649,16 @@ export const FriendsManagerModal: React.FC<FriendsManagerModalProps> = ({
                   <span className="text-amber-400 font-bold">{filteredSuggested.length} membres disponibles</span>
                 </div>
 
-                {isFallbackSuggested && (
-                  <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center space-x-2.5 text-xs text-amber-300">
-                    <Users className="w-4 h-4 shrink-0 text-amber-400" />
-                    <span>
-                      Aucun profil exact trouvé pour <strong>« @{cleanQ} »</strong>. Affichage par défaut de l'ensemble des membres enregistrés dans la communauté :
-                    </span>
-                  </div>
-                )}
-
                 {filteredSuggested.length === 0 ? (
                   <div className="p-8 text-center rounded-3xl bg-stone-950/60 border border-stone-800 space-y-2">
                     <Users className="w-8 h-8 text-stone-600 mx-auto" />
-                    <p className="text-xs text-stone-300 font-bold">Aucun utilisateur trouvé</p>
+                    <p className="text-xs text-stone-300 font-bold">
+                      {searchQuery ? "Aucun résultat trouvé" : "Aucun utilisateur inscrit pour le moment"}
+                    </p>
                     <p className="text-[11px] text-stone-500">
                       {searchQuery
                         ? `Aucun utilisateur ne correspond à la recherche "${searchQuery}".`
-                        : "Aucun nouvel utilisateur à suggérer pour le moment."}
+                        : "Aucun autre utilisateur n'est encore inscrit dans la base de données. Dès que de nouveaux membres créeront un compte, ils apparaîtront ici."}
                     </p>
                   </div>
                 ) : (
