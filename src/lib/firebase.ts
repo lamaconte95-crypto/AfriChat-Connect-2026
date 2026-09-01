@@ -708,7 +708,7 @@ export function buildDefaultUser(
     followingCount: 1,
     isVIP: false,
     isVerified: false,
-    walletBalance: 15000, // Welcome gift of 15,000 FCFA for demo testing
+    walletBalance: 0,
     currency: 'FCFA',
     createdAt: new Date().toISOString(),
     authProvider: 'firebase',

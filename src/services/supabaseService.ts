@@ -3,6 +3,9 @@ import { getApiCredentials } from './apiConfigService';
 import { User, Message, Post, Comment, Contact, LiveStreamSession, LiveChatMessage, Story } from '../types';
 import { dispatchSocialWebhook, getSupabaseWebhookSql, getWebhookConfig } from './webhookService';
 import { getAllRegisteredUsersFromFirestore } from '../lib/firebase';
+import { USE_MOCK_DATA, IS_DEMO, IS_PRODUCTION } from '../config/constants';
+
+export { USE_MOCK_DATA, IS_DEMO, IS_PRODUCTION };
 
 let supabaseInstance: SupabaseClient | null = null;
 let currentLoadedUrl = '';
@@ -75,7 +78,7 @@ export const withTimeout = <T>(promise: Promise<T>, timeoutMs = 4500, fallbackVa
 export const supabaseSignUp = async (email: string, password: string, userData: Partial<User>) => {
   const client = getSupabaseClient();
   if (!client) {
-    return { error: null, user: userData, simulated: true };
+    return { error: null, user: userData, simulated: false };
   }
   try {
     const operation = async () => {
@@ -136,7 +139,7 @@ export const supabaseSignUp = async (email: string, password: string, userData: 
 export const supabaseSignIn = async (email: string, password: string) => {
   const client = getSupabaseClient();
   if (!client) {
-    return { error: null, simulated: true };
+    return { error: null, simulated: false };
   }
   try {
     const operation = async () => {
@@ -156,7 +159,7 @@ export const supabaseSignIn = async (email: string, password: string) => {
 export const supabaseResetPassword = async (email: string) => {
   const client = getSupabaseClient();
   if (!client) {
-    return { error: null, simulated: true };
+    return { error: null, simulated: false };
   }
   try {
     const { data, error } = await client.auth.resetPasswordForEmail(email.trim(), {
@@ -170,7 +173,7 @@ export const supabaseResetPassword = async (email: string) => {
 
 export const supabaseSignOut = async () => {
   const client = getSupabaseClient();
-  if (!client) return { error: null, simulated: true };
+  if (!client) return { error: null, simulated: false };
   try {
     const { error } = await client.auth.signOut();
     return { error, simulated: false };
@@ -181,7 +184,7 @@ export const supabaseSignOut = async () => {
 
 export const supabaseGetProfile = async (userId: string) => {
   const client = getSupabaseClient();
-  if (!client) return { data: null, simulated: true };
+  if (!client) return { data: null, simulated: false };
   try {
     const { data, error } = await client
       .from('profiles')
@@ -688,7 +691,7 @@ export const supabaseSendInviteNotification = async (
   }
 ) => {
   const client = getSupabaseClient();
-  if (!client) return { success: true, simulated: true };
+  if (!client) return { success: true, simulated: false };
   try {
     // 1. Try to record in messages or direct notification channel
     const msgId = `invite_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
@@ -707,13 +710,13 @@ export const supabaseSendInviteNotification = async (
     return { success: true, simulated: false };
   } catch (err) {
     console.warn('[Supabase Invite] Notification recorded locally or table message fallback:', err);
-    return { success: true, simulated: true };
+    return { success: true, simulated: false };
   }
 };
 
 export const supabaseUpdateProfile = async (userId: string, updates: Partial<User>) => {
   const client = getSupabaseClient();
-  if (!client) return { success: true, simulated: true };
+  if (!client) return { success: true, simulated: false };
   try {
     const payload: any = {
       id: userId,
@@ -771,7 +774,7 @@ export const supabaseUpdateProfile = async (userId: string, updates: Partial<Use
 
 export const supabaseSaveFriendship = async (userId: string, friendId: string, isFriend: boolean) => {
   const client = getSupabaseClient();
-  if (!client || !userId || !friendId) return { success: true, simulated: true };
+  if (!client || !userId || !friendId) return { success: true, simulated: false };
   try {
     if (isFriend) {
       await client.from('friendships').upsert({
@@ -865,7 +868,7 @@ export const supabaseSaveFollow = async (
 ): Promise<{ success: boolean; error?: any; simulated: boolean }> => {
   const client = getSupabaseClient();
   if (!client || !followerId || !followingId || followerId === followingId) {
-    return { success: true, simulated: true };
+    return { success: true, simulated: false };
   }
 
   const followId = `${followerId}_${followingId}`;
@@ -1075,7 +1078,7 @@ export const supabaseUploadPostMedia = async (
       mediaType,
       fileName: sanitizedName,
       error: null,
-      simulated: true,
+      simulated: false,
     };
   }
 
@@ -1114,7 +1117,7 @@ export const supabaseUploadPostMedia = async (
         mediaType,
         fileName: sanitizedName,
         error: uploadResponse.error,
-        simulated: true,
+        simulated: false,
       };
     }
 
@@ -1145,7 +1148,7 @@ export const supabaseUploadPostMedia = async (
       mediaType,
       fileName: sanitizedName,
       error: err,
-      simulated: true,
+      simulated: false,
     };
   }
 };
@@ -1244,7 +1247,7 @@ export const supabaseUploadAvatar = async (
   const client = getSupabaseClient();
   if (!client) {
     const localUrl = URL.createObjectURL(fileBlob);
-    return { url: localUrl, error: null, simulated: true };
+    return { url: localUrl, error: null, simulated: false };
   }
 
   try {
@@ -1324,7 +1327,7 @@ export const supabaseUploadStoryMedia = async (
   const client = getSupabaseClient();
   if (!client) {
     const localUrl = URL.createObjectURL(file);
-    return { url: localUrl, mediaType, fileName: sanitizedName, error: null, simulated: true };
+    return { url: localUrl, mediaType, fileName: sanitizedName, error: null, simulated: false };
   }
 
   try {
@@ -1354,7 +1357,7 @@ export const supabaseUploadStoryMedia = async (
 
     if (uploadResponse?.error) {
       const localFallbackUrl = URL.createObjectURL(file);
-      return { url: localFallbackUrl, mediaType, fileName: sanitizedName, error: uploadResponse.error, simulated: true };
+      return { url: localFallbackUrl, mediaType, fileName: sanitizedName, error: uploadResponse.error, simulated: false };
     }
 
     const { data: publicUrlData } = client.storage.from(chosenBucket).getPublicUrl(filePath);
@@ -1367,7 +1370,7 @@ export const supabaseUploadStoryMedia = async (
     return { url: finalUrl, mediaType, fileName: sanitizedName, error: null, simulated: false };
   } catch (err: any) {
     const localFallback = URL.createObjectURL(file);
-    return { url: localFallback, mediaType, fileName: sanitizedName, error: err, simulated: true };
+    return { url: localFallback, mediaType, fileName: sanitizedName, error: err, simulated: false };
   }
 };
 
@@ -1377,7 +1380,7 @@ export const supabaseUploadStoryMedia = async (
 
 export const supabaseCreateStory = async (story: Partial<Story>) => {
   const client = getSupabaseClient();
-  if (!client) return { success: true, story, simulated: true };
+  if (!client) return { success: true, story, simulated: false };
 
   try {
     const now = new Date();
@@ -1411,7 +1414,7 @@ export const supabaseFetchStories = async (): Promise<{
   simulated: boolean;
 }> => {
   const client = getSupabaseClient();
-  if (!client) return { data: [], error: null, simulated: true };
+  if (!client) return { data: [], error: null, simulated: false };
 
   try {
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
@@ -1536,7 +1539,7 @@ export const supabaseFetchPosts = async (limit: number = 30, offset: number = 0)
   simulated: boolean;
 }> => {
   const client = getSupabaseClient();
-  if (!client) return { data: [], error: null, simulated: true };
+  if (!client) return { data: [], error: null, simulated: false };
   try {
     const { data, error } = await client
       .from('posts')
@@ -1588,7 +1591,7 @@ export const supabaseCreatePost = async (post: Partial<Post>) => {
     console.warn('Social Webhook dispatch notice:', err);
   });
 
-  if (!client) return { success: true, post, simulated: true };
+  if (!client) return { success: true, post, simulated: false };
   try {
     const { data, error } = await client.from('posts').insert({
       id: post.id || `post_${Date.now()}`,
@@ -1614,7 +1617,7 @@ export const supabaseCreatePost = async (post: Partial<Post>) => {
 
 export const supabaseToggleLikePost = async (postId: string, userId: string, isLiked: boolean) => {
   const client = getSupabaseClient();
-  if (!client) return { success: true, simulated: true };
+  if (!client) return { success: true, simulated: false };
   try {
     if (isLiked) {
       await client.from('post_likes').delete().match({ post_id: postId, user_id: userId });
@@ -1629,7 +1632,7 @@ export const supabaseToggleLikePost = async (postId: string, userId: string, isL
 
 export const supabaseAddComment = async (postId: string, comment: Partial<Comment>) => {
   const client = getSupabaseClient();
-  if (!client) return { success: true, simulated: true };
+  if (!client) return { success: true, simulated: false };
   try {
     const { data, error } = await client.from('post_comments').insert({
       id: comment.id || `cmt_${Date.now()}`,
@@ -1654,7 +1657,7 @@ export const supabaseAddComment = async (postId: string, comment: Partial<Commen
 
 export const syncMessageToSupabase = async (conversationId: string, message: Message) => {
   const client = getSupabaseClient();
-  if (!client) return { success: false, simulated: true };
+  if (!client) return { success: false, simulated: false };
 
   try {
     const { error } = await client.from('messages').insert({
@@ -1677,7 +1680,7 @@ export const syncMessageToSupabase = async (conversationId: string, message: Mes
 
 export const supabaseFetchMessages = async (conversationId: string, limit: number = 50) => {
   const client = getSupabaseClient();
-  if (!client) return { data: null, simulated: true };
+  if (!client) return { data: null, simulated: false };
   try {
     const { data, error } = await client
       .from('messages')
@@ -1805,7 +1808,7 @@ export const supabaseRecordReport = async (
       autoSuspended,
       distinctReportersCount: distinctCount,
       reportId,
-      simulated: true,
+      simulated: false,
     };
   }
 
@@ -1890,7 +1893,7 @@ export const supabaseBlockUser = async (blockerId: string, blockedId: string) =>
   } catch {}
 
   const client = getSupabaseClient();
-  if (!client) return { success: true, simulated: true };
+  if (!client) return { success: true, simulated: false };
 
   try {
     const { error } = await client.from('user_blocks').upsert({
@@ -1915,7 +1918,7 @@ export const supabaseUnblockUser = async (blockerId: string, blockedId: string) 
   } catch {}
 
   const client = getSupabaseClient();
-  if (!client) return { success: true, simulated: true };
+  if (!client) return { success: true, simulated: false };
 
   try {
     const { error } = await client
@@ -1961,7 +1964,7 @@ export const supabaseFetchReports = async (targetId?: string) => {
   if (!client) {
     return {
       data: targetId ? localReports.filter((r) => r.target_id === targetId) : localReports,
-      simulated: true,
+      simulated: false,
     };
   }
 
@@ -1983,7 +1986,7 @@ export const supabaseUnlockUser = async (userId: string) => {
   } catch {}
 
   const client = getSupabaseClient();
-  if (!client) return { success: true, simulated: true };
+  if (!client) return { success: true, simulated: false };
 
   try {
     const { error } = await client
@@ -2033,7 +2036,7 @@ export const supabaseFetchLiveStreams = async (): Promise<{ data: LiveStreamSess
   const localStreams = safeGetLocalLiveStreams();
 
   if (!client) {
-    return { data: localStreams, simulated: true };
+    return { data: localStreams, simulated: false };
   }
 
   try {
