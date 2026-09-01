@@ -108,7 +108,10 @@ import {
   subscribeToAllRegisteredUsers,
   saveUserFriendInFirestore,
   subscribeToUserFriends,
-  getUserFriendsFromFirestore
+  getUserFriendsFromFirestore,
+  saveFollowRelationship,
+  subscribeToUserFollows,
+  getUserFollowStats
 } from './lib/firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { 
@@ -138,6 +141,9 @@ import {
   supabaseSaveFriendship,
   supabaseFetchFriendships,
   supabaseSubscribeFriendships,
+  supabaseSaveFollow,
+  supabaseFetchFollows,
+  supabaseSubscribeFollows,
   COMMUNITY_FALLBACK_MEMBERS
 } from './services/supabaseService';
 import { dispatchSocialWebhook, getWebhookConfig } from './services/webhookService';
@@ -294,55 +300,82 @@ export default function App() {
     });
   }, [currentUser.id]);
 
-  // Synchronize current user's friend list from Firestore & Supabase across all devices (phones & computers)
+  // Synchronize current user's follow & friend list from Firestore & Supabase in real-time
   useEffect(() => {
     if (!currentUser.id) return;
 
-    // 1. Realtime listener from Firestore
-    const unsubscribeFirestoreFriends = subscribeToUserFriends(currentUser.id, (friendIds) => {
-      if (friendIds) {
+    // 1. Realtime follow listener from Firestore
+    const unsubscribeFirestoreFollows = subscribeToUserFollows(currentUser.id, ({ followingIds, followerIds }) => {
+      if (followingIds) {
         setContacts((prev) =>
           prev.map((c) => ({
             ...c,
-            isFriend: friendIds.includes(c.id) || (c.userId ? friendIds.includes(c.userId) : false),
+            isFriend: followingIds.includes(c.id) || (c.userId ? followingIds.includes(c.userId) : false),
           }))
         );
+      }
+      if (followingIds !== undefined || followerIds !== undefined) {
+        setCurrentUser((prev) => ({
+          ...prev,
+          followingCount: followingIds ? followingIds.length : (prev.followingCount ?? 0),
+          followersCount: followerIds ? followerIds.length : (prev.followersCount ?? 0),
+        }));
       }
     });
 
     // 2. Realtime listener from Supabase
-    const unsubscribeSupabaseFriends = supabaseSubscribeFriendships(currentUser.id, (friendIds) => {
-      if (friendIds) {
+    const unsubscribeSupabaseFollows = supabaseSubscribeFollows(currentUser.id, ({ followingIds, followerIds }) => {
+      if (followingIds) {
         setContacts((prev) =>
           prev.map((c) => ({
             ...c,
-            isFriend: friendIds.includes(c.id) || (c.userId ? friendIds.includes(c.userId) : false),
+            isFriend: followingIds.includes(c.id) || (c.userId ? followingIds.includes(c.userId) : false),
           }))
         );
+      }
+      if (followingIds !== undefined || followerIds !== undefined) {
+        setCurrentUser((prev) => ({
+          ...prev,
+          followingCount: followingIds ? followingIds.length : (prev.followingCount ?? 0),
+          followersCount: followerIds ? followerIds.length : (prev.followersCount ?? 0),
+        }));
       }
     });
 
     // Initial fetch from Supabase & Firestore
     Promise.allSettled([
+      supabaseFetchFollows(currentUser.id),
+      getUserFollowStats(currentUser.id),
       supabaseFetchFriendships(currentUser.id),
       getUserFriendsFromFirestore(currentUser.id),
-    ]).then(([supaRes, fbRes]) => {
-      const supaIds = supaRes.status === 'fulfilled' ? supaRes.value || [] : [];
-      const fbIds = fbRes.status === 'fulfilled' ? fbRes.value || [] : [];
-      const allFriendIds = Array.from(new Set([...supaIds, ...fbIds]));
-      if (allFriendIds.length > 0) {
+    ]).then(([supaFollowsRes, fbFollowsRes, supaFriendsRes, fbFriendsRes]) => {
+      const supaFollows = supaFollowsRes.status === 'fulfilled' ? supaFollowsRes.value : { followingIds: [], followerIds: [] };
+      const fbFollows = fbFollowsRes.status === 'fulfilled' ? fbFollowsRes.value : { followingIds: [], followerIds: [], followersCount: 0, followingCount: 0 };
+      const supaIds = supaFriendsRes.status === 'fulfilled' ? supaFriendsRes.value || [] : [];
+      const fbIds = fbFriendsRes.status === 'fulfilled' ? fbFriendsRes.value || [] : [];
+
+      const allFollowingIds = Array.from(new Set([...supaFollows.followingIds, ...fbFollows.followingIds, ...supaIds, ...fbIds]));
+      const allFollowerIds = Array.from(new Set([...supaFollows.followerIds, ...fbFollows.followerIds]));
+
+      if (allFollowingIds.length > 0) {
         setContacts((prev) =>
           prev.map((c) => ({
             ...c,
-            isFriend: allFriendIds.includes(c.id) || (c.userId ? allFriendIds.includes(c.userId) : false),
+            isFriend: allFollowingIds.includes(c.id) || (c.userId ? allFollowingIds.includes(c.userId) : false),
           }))
         );
       }
+
+      setCurrentUser((prev) => ({
+        ...prev,
+        followingCount: allFollowingIds.length,
+        followersCount: allFollowerIds.length,
+      }));
     });
 
     return () => {
-      unsubscribeFirestoreFriends();
-      unsubscribeSupabaseFriends();
+      unsubscribeFirestoreFollows();
+      unsubscribeSupabaseFollows();
     };
   }, [currentUser.id]);
 
@@ -1653,36 +1686,58 @@ export default function App() {
     }
   };
 
-  // Contacts Handlers
+  // Contacts & Follow / Unfollow Handlers (100% Dynamic Database Connected)
   const handleToggleFriend = async (contactId: string) => {
     const targetContact = contacts.find((c) => c.id === contactId || c.userId === contactId);
     const targetId = targetContact?.userId || targetContact?.id || contactId;
-    const currentIsFriend = targetContact ? targetContact.isFriend : false;
+    const currentIsFriend = targetContact ? Boolean(targetContact.isFriend) : false;
     const newStatus = !currentIsFriend;
 
+    // 1. Update local contacts state with instant follow status & dynamic followers count (+1 / -1)
     setContacts((prev) =>
       prev.map((c) => {
         if (c.id === contactId || c.userId === contactId) {
-          return { ...c, isFriend: newStatus };
+          const currentFollowers = c.followersCount ?? 0;
+          const updatedFollowers = newStatus ? currentFollowers + 1 : Math.max(0, currentFollowers - 1);
+          return { ...c, isFriend: newStatus, followersCount: updatedFollowers };
         }
         return c;
       })
     );
 
+    // 2. Update selectedContact if open
     if (selectedContact && (selectedContact.id === contactId || selectedContact.userId === contactId)) {
-      setSelectedContact((prev) => (prev ? { ...prev, isFriend: newStatus } : null));
+      setSelectedContact((prev) => {
+        if (!prev) return null;
+        const currentFollowers = prev.followersCount ?? 0;
+        const updatedFollowers = newStatus ? currentFollowers + 1 : Math.max(0, currentFollowers - 1);
+        return { ...prev, isFriend: newStatus, followersCount: updatedFollowers };
+      });
     }
+
+    // 3. Dynamically increment/decrement currentUser's followingCount (+1 / -1)
+    setCurrentUser((prev) => {
+      const currentFollowing = prev.followingCount ?? 0;
+      const updatedFollowing = newStatus ? currentFollowing + 1 : Math.max(0, currentFollowing - 1);
+      const updatedUser = { ...prev, followingCount: updatedFollowing };
+      safeSetItem('africhat_user_profile', JSON.stringify(updatedUser));
+      return updatedUser;
+    });
 
     triggerSecurityToast(
       newStatus
-        ? `${targetContact?.name || 'Le contact'} a été ajouté(e) à vos amis ! 👥`
-        : `${targetContact?.name || 'Le contact'} a été retiré(e) de vos amis.`,
+        ? `Vous êtes maintenant abonné(e) à ${targetContact?.name || 'ce profil'} ! 👥`
+        : `Vous ne suivez plus ${targetContact?.name || 'ce profil'}.`,
       'info'
     );
 
-    // Save to Cloud Firestore & Supabase database
-    await saveUserFriendInFirestore(currentUser.id, targetId, newStatus);
-    await supabaseSaveFriendship(currentUser.id, targetId, newStatus);
+    // 4. Save to Cloud Firestore & Supabase database
+    await Promise.allSettled([
+      saveFollowRelationship(currentUser.id, targetId, newStatus),
+      saveUserFriendInFirestore(currentUser.id, targetId, newStatus),
+      supabaseSaveFollow(currentUser.id, targetId, newStatus),
+      supabaseSaveFriendship(currentUser.id, targetId, newStatus),
+    ]);
   };
 
   const handleToggleBlock = async (contactIdOrUserId: string) => {
@@ -2811,6 +2866,11 @@ export default function App() {
         isOpen={isContactProfileOpen}
         contact={selectedContact}
         currentUser={currentUser}
+        contactPostsCount={
+          selectedContact
+            ? posts.filter((p) => p.userId === (selectedContact.userId || selectedContact.id)).length
+            : 0
+        }
         onClose={() => setIsContactProfileOpen(false)}
         onToggleFriend={handleToggleFriend}
         onToggleBlock={handleToggleBlock}
