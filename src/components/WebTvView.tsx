@@ -881,18 +881,12 @@ export const WebTvView: React.FC<WebTvViewProps> = ({
                 </div>
 
                 <div className="pt-2 flex items-center justify-end space-x-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsAddStreamOpen(false)}
-                    className="px-4 py-2 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs font-bold"
-                  >
-                    Annuler
-                  </button>
-                  <button
+                 <button
                     type="submit"
-                    className="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-stone-950 font-black text-xs shadow-md hover:scale-105 active:scale-95 transition-all"
+                    className="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 font-bold text-xs text-stone-950 hover:opacity-90 transition-opacity flex items-center space-x-1"
                   >
-                    Lancer la diffusion Live 🚀
+                    <span>Lancer la diffusion Live</span>
+                    <Radio className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </form>
@@ -903,3 +897,5 @@ export const WebTvView: React.FC<WebTvViewProps> = ({
     </div>
   );
 };
+
+export default WebTvView;
