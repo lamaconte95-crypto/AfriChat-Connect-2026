@@ -5,7 +5,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { Sparkles } from 'lucide-react';
+import { Sparkles } from 'lucide-react';import UserList from './components/UserList';
+
 import { 
   CURRENT_USER, 
   INITIAL_POSTS, 
@@ -456,7 +457,31 @@ export default function App() {
       })
     );
   };
+// 1. Setup Supabase Realtime channel for instant profile broadcasts
+      const unsubscribeSupabase = supabaseSubscribeProfiles((newContact, eventType) => {
+        // If current user modified profile on another device, sync local currentUser state
+        if (newContact.id === currentUser.id || newContact.userId === currentUser.id) {
+          setCurrentUser((prev) => ({
+            ...prev,
+            name: newContact.name || prev.name,
+            username: newContact.username || prev.username,
+            avatar: newContact.avatar || prev.avatar,
+            country: newContact.country || prev.country,
+            flag: newContact.flag || prev.flag,
+            isVIP: newContact.isVIP !== undefined ? newContact.isVIP : prev.isVIP,
+          }));
+        }
 
+        propagateUserUpdateToUI(
+          newContact.id,
+          newContact.name,
+          newContact.username,
+          newContact.avatar,
+          newContact.country,
+          newContact.flag,
+          newContact.isVIP
+        );
+      });
   const handleUpdateAvatar = async (avatarDataOrUrl: string) => {
     try {
       triggerSecurityToast('📸 Téléchargement et synchronisation de votre photo de profil...', 'info');
