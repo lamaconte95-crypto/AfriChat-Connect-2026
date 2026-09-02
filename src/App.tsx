@@ -5,7 +5,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { Sparkles } from 'lucide-react';import UserList from './components/UserList';
+import { Sparkles } from 'lucide-react';
+import { AddContentModal } from './components/AddContentModal';
+import UserList from './components/UserList';
 
 import { 
   CURRENT_USER, 
@@ -3101,3 +3103,12 @@ export default function App() {
     </div>
   );
 }
+{/* Modale d'ajout Web TV & Pages Facebook */}
+        <AddContentModal
+          isOpen={isAddContentOpen}
+          onClose={() => setIsAddContentOpen(false)}
+          onSubmit={(data) => {
+            console.log('Nouveau contenu à enregistrer :', data);
+          }}
+          type={contentType}
+        />
